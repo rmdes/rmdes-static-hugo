@@ -39,117 +39,117 @@
     - slug: rmdes/hydrapp
       background: var(--pf-global--palette--green-700)
       icon: true
-    - slug: pojntfx/hydrun
+    - slug: rmdes/hydrun
       background: var(--pf-global--palette--purple-600)
-    - slug: pojntfx/alpimager
+    - slug: rmdes/alpimager
       background: var(--pf-global--palette--black-850)
-    - slug: pojntfx/octarchive
+    - slug: rmdes/octarchive
       background: var(--pf-global--palette--gold-600)
       icon: true
-    - slug: pojntfx/pojde
+    - slug: rmdes/pojde
       background: var(--pf-global--palette--light-green-700)
-    - slug: pojntfx/grpc-examples
+    - slug: rmdes/grpc-examples
       background: var(--pf-global--palette--green-600)
 - title: Distributed Computing
   projects:
-    - slug: pojntfx/saltpanelo
+    - slug: rmdes/saltpanelo
       background: var(--pf-global--palette--blue-400)
       icon: true
-    - slug: pojntfx/dudirekta
+    - slug: rmdes/dudirekta
       background: var(--pf-global--palette--light-blue-600)
       icon: true
-    - slug: pojntfx/unisockets
+    - slug: rmdes/unisockets
       background: var(--pf-global--palette--gold-600)
-    - slug: pojntfx/tinynet
+    - slug: rmdes/tinynet
       background: var(--pf-global--palette--cyan-600)
-    - slug: pojntfx/nebulark
+    - slug: rmdes/nebulark
       background: var(--pf-global--palette--orange-600)
-    - slug: pojntfx/webnetes
+    - slug: rmdes/webnetes
       background: var(--pf-global--palette--red-400)
 - title: Management Daemons
   projects:
-    - slug: pojntfx/go-isc-dhcp
+    - slug: rmdes/go-isc-dhcp
       background: var(--pf-global--palette--black-850)
-    - slug: pojntfx/gon2n
+    - slug: rmdes/gon2n
       background: var(--pf-global--palette--blue-400)
-    - slug: pojntfx/ipxebuilderd
+    - slug: rmdes/ipxebuilderd
       background: var(--pf-global--palette--cyan-500)
-    - slug: pojntfx/dibs
+    - slug: rmdes/dibs
       background: var(--pf-global--palette--light-blue-600)
 - title: Uni Notes
   projects:
-    - slug: pojntfx/uni-webdev-backend-notes
+    - slug: rmdes/uni-webdev-backend-notes
       background: var(--pf-global--palette--black-850)
-    - slug: pojntfx/uni-distributedsystems-notes
+    - slug: rmdes/uni-distributedsystems-notes
       background: var(--pf-global--palette--orange-600)
-    - slug: pojntfx/uni-programminglanguages-notes
+    - slug: rmdes/uni-programminglanguages-notes
       background: var(--pf-global--palette--blue-400)
-    - slug: pojntfx/uni-supply-chain-paper
+    - slug: rmdes/uni-supply-chain-paper
       background: var(--pf-global--palette--red-400)
-    - slug: pojntfx/uni-netpractice-notes
+    - slug: rmdes/uni-netpractice-notes
       background: var(--pf-global--palette--orange-600)
-    - slug: pojntfx/uni-webtopics-notes
+    - slug: rmdes/uni-webtopics-notes
       background: var(--pf-global--palette--cyan-600)
-    - slug: pojntfx/uni-sciwriting-notes
+    - slug: rmdes/uni-sciwriting-notes
       background: var(--pf-global--palette--gold-600)
-    - slug: pojntfx/uni-appsecurity-notes
+    - slug: rmdes/uni-appsecurity-notes
       background: var(--pf-global--palette--green-600)
-    - slug: pojntfx/uni-hci-notes
+    - slug: rmdes/uni-hci-notes
       background: var(--pf-global--palette--black-850)
-    - slug: pojntfx/uni-itsec-notes
+    - slug: rmdes/uni-itsec-notes
       background: var(--pf-global--palette--green-700)
-    - slug: pojntfx/uni-db1-notes
+    - slug: rmdes/uni-db1-notes
       background: var(--pf-global--palette--light-green-600)
-    - slug: pojntfx/uni-sdi-notes
+    - slug: rmdes/uni-sdi-notes
       background: var(--pf-global--palette--light-green-700)
-    - slug: pojntfx/uni-algodat-notes
+    - slug: rmdes/uni-algodat-notes
       background: var(--pf-global--palette--purple-600)
-    - slug: pojntfx/uni-bwl-notes
+    - slug: rmdes/uni-bwl-notes
       background: var(--pf-global--palette--black-850)
 - title: Digital Publishing
   projects:
-    - slug: pojntfx/deliverance
+    - slug: rmdes/deliverance
       background: var(--pf-global--palette--black-850)
       icon: true
-    - slug: pojntfx/minitel
+    - slug: rmdes/minitel
       background: var(--pf-global--palette--blue-400)
-    - slug: pojntfx/box
+    - slug: rmdes/box
       background: var(--pf-global--palette--cyan-500)
-    - slug: pojntfx/abizeitung
+    - slug: rmdes/abizeitung
       background: var(--pf-global--palette--light-blue-600)
 - title: Websites
   projects:
-    - slug: pojntfx/felicitas.pojtinger.com
+    - slug: rmdes/euwatch.live
       background: var(--pf-global--palette--gold-600)
-    - slug: pojntfx/pojtinger.com
+    - slug: rmdes/osintukraine.com
       background: var(--pf-global--palette--cyan-600)
-    - slug: morniteaque/yaraamendiares.eu
+    - slug: morniteaque/armada.digital
       background: var(--pf-global--palette--purple-600)
-    - slug: morniteaque/morniteaque.org
+    - slug: morniteaque/blog.rmendes.net
       background: var(--pf-global--palette--black-850)
-    - slug: pojntfx/illustrierte-website
+    - slug: rmdes/polbegov
       background: var(--pf-global--palette--orange-600)
-    - slug: pojntfx/physio-dani.de
+    - slug: rmdes/lepetitchapitre
       background: var(--pf-global--palette--red-400)
 - title: Integrations
   projects:
-    - slug: pojntfx/simple-direct-democracy-frontend
+    - slug: rmdes/simple-direct-democracy-frontend
       background: var(--pf-global--palette--green-600)
-    - slug: pojntfx/task-timer
+    - slug: rmdes/task-timer
       background: var(--pf-global--palette--green-700)
-    - slug: pojntfx/learn-chinese-platform
+    - slug: rmdes/learn-chinese-platform
       background: var(--pf-global--palette--light-green-600)
-    - slug: pojntfx/chinese-notes
+    - slug: rmdes/chinese-notes
       background: var(--pf-global--palette--light-green-700)
-    - slug: pojntfx/nextcloud-talk-bot-framework
+    - slug: rmdes/nextcloud-talk-bot-framework
       background: var(--pf-global--palette--purple-600)
-    - slug: pojntfx/consumat.io-backend
+    - slug: rmdes/consumat.io-backend
       background: var(--pf-global--palette--black-850)
 - title: Aeronautical Engineering
   projects:
-    - slug: pojntfx/libresat
+    - slug: rmdes/libresat
       background: var(--pf-global--palette--black-850)
-    - slug: pojntfx/clusterplatform
+    - slug: rmdes/clusterplatform
       background: var(--pf-global--palette--blue-400)
-    - slug: pojntfx/opensdcp-website
+    - slug: rmdes/opensdcp-website
       background: var(--pf-global--palette--cyan-500)
