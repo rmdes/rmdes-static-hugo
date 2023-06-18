@@ -1,16 +1,16 @@
-author: Felicitas Pojtinger
-description: Felicitas Pojtinger is a software engineer focused on Go and the web.
+author: Ricardo Mendes
+description: Ricardo Mendes is a Solution Architect 
 keywords:
-  - Felicitas
-  - Pojtinger
-  - Felicitas Pojtinger
-  - pojntfx
-  - Go
+  - Automation
+  - Deployment
+  - DevOps
+  - Maintenance
+  - IoC
   - Web
-  - STFS
-  - bofied
-  - liwasc
-  - Cluster Platform
+  - Social Media
+  - Fediverse
+  - Indieweb
+  - Selfhosting
   - Open Source
   - Free Software
-source: https://github.com/pojntfx/felicitas.pojtinger.com
+source: https://github.com/rmdes/rmdes/static-hugo

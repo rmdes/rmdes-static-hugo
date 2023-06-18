@@ -1,6 +1,6 @@
 giscus:
-  repo: pojntfx/felicitas.pojtinger.com
-  repoID: MDEwOlJlcG9zaXRvcnkyMjk0NTAyMDE=
+  repo: rmdes/rmdes-static-hugo
+  repoID: 655336954
   category: Announcements
   categoryID: DIC_kwDODa0h2c4CAeR2
   mapping: pathname
@@ -9,24 +9,24 @@ giscus:
   theme: light
 youtube:
   enabled: false
-  username: UC0-pwQXvswpwjMVV_jdFLzg
+  username: UC_ovbXI8zBOVAwGar4O06XA
 twitch:
   enabled: false
-  username: pojntfx
+  username: rmdes
 github:
   enabled: true
-  username: pojntfx
+  username: rmdes
   projects: true
 bluesky:
   enabled: true
-  username: felicitas.pojtinger.com
+  username: rmdes.bsky.social
 twitter:
-  enabled: false
-  username: pojntfx
+  enabled: true
+  username: rmdes_
   warning: true
 mastodon:
-  enabled: false
-  username: "@pojntfx@mastodon.social"
+  enabled: true
+  username: "@prmdes@mstdn.social"
 spotify:
   enabled: true
   username: qnorz69jqim5g87rt460krbr1
