@@ -5,7 +5,7 @@ My personal site.
 [![hydrun CI](https://github.com/pojntfx/felicitas.pojtinger.com/actions/workflows/hydrun.yaml/badge.svg)](https://github.com/pojntfx/felicitas.pojtinger.com/actions/workflows/hydrun.yaml)
 ![Go Version](https://img.shields.io/badge/go%20version-%3E=1.16-61CFDD.svg)
 [![Go Reference](https://pkg.go.dev/badge/github.com/pojntfx/felicitas.pojtinger.com.svg)](https://pkg.go.dev/github.com/pojntfx/felicitas.pojtinger.com)
-[![Binary Downloads](https://img.shields.io/github/downloads/pojntfx/felicitas.pojtinger.com/total?label=binary%20downloads)](https://github.com/pojntfx/felicitas.pojtinger.com/releases)
+[![Binary Downloads](https://img.shields.io/github/downloads/pojntfx/felicitas.pojtinger.com/total?label=binary%20downloads)](https://github.com/rmdes/rmdes-static-hugo/releases)
 
 ## Overview
 
@@ -23,7 +23,7 @@ It provides the following information:
 
 ## Installation
 
-The web app is available on [GitHub releases](https://github.com/pojntfx/felicitas.pojtinger.com/releases) in the form of a static `.tar.gz` archive; to deploy it, simply upload it to a CDN or copy it to a web server. The release also includes the project list generation tool, API server and proxy. For most users, this shouldn't be necessary though; simply visit the [public deployment](https://felicitas.pojtinger.com/) to access it:
+The web app is available on [GitHub releases](https://github.com/rmdes/rmdes-static-hugo/releases) in the form of a static `.tar.gz` archive; to deploy it, simply upload it to a CDN or copy it to a web server. The release also includes the project list generation tool, API server and proxy. For most users, this shouldn't be necessary though; simply visit the [public deployment](https://rmendes.net/) to access it:
 
 [<img src="https://github.com/pojntfx/webnetesctl/raw/main/img/launch.png" width="240">](https://felicitas.pojtinger.com/)
 
@@ -69,6 +69,7 @@ Click on an image to see a larger version.
 - [googleapis/google-api-go-client](https://github.com/googleapis/google-api-go-client) provides the YouTube API library.
 - [giscus/giscus](https://github.com/giscus/giscus) provides the comment system.
 - The open source [PatternFly design system](https://www.patternfly.org/v4/) provides the components for the project.
+- Source code and template for this repo comes from [pojntfx/felicitas.pojtinger.com](https://github.com/pojntfx/felicitas.pojtinger.com/)
 
 ## Contributing
 
@@ -77,8 +78,8 @@ To contribute, please use the [GitHub flow](https://guides.github.com/introducti
 To build the site locally, run:
 
 ```shell
-$ git clone https://github.com/pojntfx/felicitas.pojtinger.com.git
-$ cd felicitas.pojtinger.com
+$ git clone https://github.com/rmdes/rmdes-static-hugo.git
+$ cd rmdes-static-hugo
 $ make depend
 $ export GITHUB_API=https://api.github.com/ GITHUB_TOKEN=your-github-api-token YOUTUBE_TOKEN=your-youtube-api-token TWITCH_CLIENT_ID=your-twitch-client-id TWITCH_CLIENT_SECRET=your-twitch-client-secret MASTODON_SERVER=https://mastodon.social MASTODON_CLIENT_ID=your-mastodon-client-id MASTODON_CLIENT_SECRET=your-mastodon-client-secret MASTODON_ACCESS_TOKEN=your-mastodon-access-token BLUESKY_SERVER=https://bsky.social/ BLUESKY_PASSWORD=your-bluesky-app-password SPOTIFY_CLIENT_ID=your-spotify-client-id SPOTIFY_CLIENT_SECRET=your-spotify-client-secret
 # This is only necessary if you want to use the Spotify integration - adjust your redirect URL accordingly
