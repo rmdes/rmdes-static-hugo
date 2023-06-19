@@ -6,26 +6,26 @@ draft: false
 
 ## English
 
-### Information According to § 5 TMG
+### Information
 
-Felicitas Pojtinger<br/>
-Hirschkopfweg 8<br/>
-72270 Baiersbronn
+Ricardo Mendes<br/>
+rue x<br/>
+Bruxssels
 
 ### Contact
 
-Phone: <a href="tel:+49 152 33842326">+49 152 33842326</a><br/>
-Email: <a href="mailto:felicitas@pojtinger.com">felicitas@pojtinger.com</a>
+Telefon: <a href="tel:+32 465 915669">+32 465 91 56 69</a><br/>
+E-Mail: <a href="mailto:rick@armada.digital">rick@armada.digital</a>
 
-## Deutsch
+## Français
 
-### Angaben gemäß § 5 TMG
+### Information
 
-Felicitas Pojtinger<br/>
-Hirschkopfweg 8<br/>
-72270 Baiersbronn
+Ricardo Mendes<br/>
+rue x<br/>
+Bruxelles
 
-### Kontakt
+### Contact
 
-Telefon: <a href="tel:+49 152 33842326">+49 152 33842326</a><br/>
-E-Mail: <a href="mailto:felicitas@pojtinger.com">felicitas@pojtinger.com</a>
+Telefon: <a href="tel:+32 465 915669">+32 465 91 56 69</a><br/>
+E-Mail: <a href="mailto:rick@armada.digital">rick@armada.digital</a>

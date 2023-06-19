@@ -1,4 +1,4 @@
-module github.com/pojntfx/felicitas.pojtinger.com
+module github.com/rmdes/rmdes-static-hugo
 
 go 1.19
 
