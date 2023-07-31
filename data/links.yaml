@@ -10,6 +10,8 @@ cta:
   icon: fas fa-plus-circle
   link: https://bsky.app/profile/rmdes.bsky.social
 socials:
+  - title: Threads
+    link: https://www.threads.net/@pojntfx
   - title: Twitter
     link: https://twitter.com/rmdes_
   - title: Instagram
