@@ -1,6 +1,6 @@
-snowfall: true
+snowfall: false
 fireworks: false
 blur: true
-rainfall: false
-sunrays: true
-grid: false
+rainfall: true
+sunrays: false
+grid: true
