@@ -9,7 +9,7 @@ OUTPUT_DIR ?= out
 DST ?=
 
 # Private variables
-obj = ps-api ps-gen-projects ps-proxy ps-spotify-get-refresh-token
+obj = ps-api ps-gen-projects ps-gen-starred ps-proxy ps-spotify-get-refresh-token
 sts = ps-pwa
 all: $(addprefix build-cli/,$(obj)) $(addprefix build-pwa/,$(sts))
 
@@ -86,4 +86,5 @@ depend:
 	cp -r node_modules/@patternfly/patternfly/assets static
 	cp -r node_modules/@fontsource/lato/files static/assets/fonts/lato
 	cp node_modules/@fortawesome/fontawesome-free/webfonts/fa-brands-400.woff2 static/assets/fonts/webfonts/
-	go run ./cmd/ps-gen-projects/ -projects data/projects.yaml > data/projects_gen.yaml
+	go run ./cmd/ps-gen-projects/ -projects data/projects.yaml 2>/dev/null > data/projects_gen.yaml
+	go run ./cmd/ps-gen-starred/ -username rmdes -limit 30 2>/dev/null > data/starred_gen.yaml

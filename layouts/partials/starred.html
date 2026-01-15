@@ -1,0 +1,76 @@
+<div class="pf-v6-c-card pf-v6-c-card--transparent pf-v6-u-mb-xl">
+  <div
+    class="pf-v6-c-card__title pf-v6-l-flex pf-m-justify-content-space-between pf-m-align-items-center pf-v6-u-py-xl"
+  >
+    <h2 class="pf-v6-c-card__title-text pf-v6-x-u-text-shadow-sm pf-v6-x-u-text--freestanding">
+      <i class="fas fa-star pf-v6-u-mr-sm" aria-hidden="true"></i>
+      Starred Repositories
+    </h2>
+    <a
+      href="https://github.com/{{ .Username }}?tab=stars"
+      target="_blank"
+      rel="noopener"
+      class="pf-v6-c-button pf-m-link pf-v6-x-u-text--freestanding"
+    >
+      View all on GitHub
+      <span class="pf-v6-c-button__icon pf-m-end">
+        <i class="fas fa-external-link-alt" aria-hidden="true"></i>
+      </span>
+    </a>
+  </div>
+  <div class="pf-v6-c-card__body">
+    <div class="pf-v6-l-gallery pf-m-gutter pf-v6-l-gallery--max-300">
+      {{ range .Site.Data.starred_gen }}
+        <div class="pf-v6-l-gallery__item">
+          <a
+            href="{{ .url }}"
+            target="_blank"
+            rel="noopener"
+            class="pf-v6-x-m-no-decoration pf-v6-u-color-100"
+          >
+            <div class="pf-v6-c-card pf-m-clickable pf-v6-u-h-100">
+              <div class="pf-v6-c-card__header">
+                <div class="pf-v6-c-card__header-main pf-v6-u-display-flex pf-v6-u-align-items-center">
+                  <img
+                    src="{{ .ownerAvatar }}"
+                    alt=""
+                    class="pf-v6-c-avatar pf-m-sm pf-v6-u-mr-sm"
+                    style="border-radius: 50%;"
+                  />
+                  <div class="pf-v6-c-card__title">
+                    <span class="pf-v6-c-card__title-text pf-v6-u-font-size-sm">
+                      {{ .fullName }}
+                    </span>
+                  </div>
+                </div>
+              </div>
+              <div class="pf-v6-c-card__body pf-v6-u-font-size-sm">
+                <p class="pf-v6-u-color-200">{{ .description | truncate 80 }}</p>
+              </div>
+              <div class="pf-v6-c-card__footer pf-v6-u-display-flex pf-v6-u-align-items-center pf-v6-u-justify-content-space-between pf-v6-u-font-size-xs pf-v6-u-color-200">
+                <div class="pf-v6-u-display-flex pf-v6-u-align-items-center">
+                  {{ with .language }}
+                    <span class="pf-v6-u-mr-md">
+                      <i class="fas fa-code" aria-hidden="true"></i>
+                      {{ . }}
+                    </span>
+                  {{ end }}
+                </div>
+                <div class="pf-v6-u-display-flex pf-v6-u-align-items-center">
+                  <span class="pf-v6-u-mr-sm">
+                    <i class="fas fa-star" aria-hidden="true"></i>
+                    {{ .stars }}
+                  </span>
+                  <span>
+                    <i class="fas fa-code-branch" aria-hidden="true"></i>
+                    {{ .forks }}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </a>
+        </div>
+      {{ end }}
+    </div>
+  </div>
+</div>

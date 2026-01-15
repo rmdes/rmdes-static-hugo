@@ -28,7 +28,7 @@ $pf-v6-global--image-path: "data-url:./{{ .Site.BaseURL }}/assets/images";
   $directory: "./{{ .Site.BaseURL }}/assets/fonts/lato"
 );
 
-$bg: "/img/bg.webp";
+$bg: "/img/bg.png";
 
 :root {
   --pf-x-base-color: #0066cc;
@@ -480,6 +480,14 @@ $bg: "/img/bg.webp";
 
   @media screen and (max-width: 412px) {
     --pf-v6-l-gallery--GridTemplateColumns--min: calc(100vw-48px);
+  }
+}
+
+.pf-v6-l-gallery--max-300 {
+  --pf-v6-l-gallery--GridTemplateColumns--min: 280px;
+
+  @media screen and (max-width: 320px) {
+    --pf-v6-l-gallery--GridTemplateColumns--min: calc(100vw - 48px);
   }
 }
 
