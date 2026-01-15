@@ -1,32 +1,36 @@
 giscus:
-  repo: pojntfx/felicitas.pojtinger.com
-  repoID: MDEwOlJlcG9zaXRvcnkyMjk0NTAyMDE=
+  repo: rmdes/rmendes.net
+  repoID: ""
   category: Announcements
-  categoryID: DIC_kwDODa0h2c4CAeR2
+  categoryID: ""
   mapping: pathname
   reactionsEnabled: 1
   emitMetadata: 1
   theme: preferred_color_scheme
 youtube:
-  enabled: false
-  username: UC0-pwQXvswpwjMVV_jdFLzg
+  enabled: true
+  username: UC_ovbXI8zBOVAwGar4O06XA
 twitch:
   enabled: false
-  username: pojntfx
+  username: ""
 github:
   enabled: true
-  username: pojntfx
+  username: rmdes
   projects: true
+  starred: true
 bluesky:
-  enabled: false
-  username: felicitas.pojtinger.com
+  enabled: true
+  username: rmendes.net
 twitter:
   enabled: false
-  username: pojntfx
-  warning: true
+  username: ""
+  warning: false
 mastodon:
   enabled: true
-  username: "@pojntfx@mastodon.social"
+  username: "@rmdes@mstdn.social"
 spotify:
   enabled: true
-  username: qnorz69jqim5g87rt460krbr1
+  username: 21gkc644ixi3ce3qyqqkvvmy
+blog:
+  enabled: true
+  feedUrl: https://blog.rmendes.net/categories/longform/feed.xml

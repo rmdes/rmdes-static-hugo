@@ -1,182 +1,22 @@
-- title: Systems Development
+- title: Bluesky Tools
   projects:
-    - repo: github.com/pojntfx/weron
-      background: var(--pf-t--color--black)
-      icon: docs/icon.svg
-    - repo: github.com/pojntfx/go-nbd
-      background: var(--pf-t--color--orange--60)
-      icon: docs/icon.svg
-    - repo: github.com/pojntfx/stfs
-      background: var(--pf-t--color--purple--70)
-    - repo: github.com/pojntfx/tapisk
-      background: var(--pf-t--color--green--70)
-      icon: docs/icon-light.png
-    - repo: github.com/pojntfx/liwasc
+    - repo: github.com/rmdes/bsky.rss
       background: var(--pf-t--color--blue--60)
-    - repo: github.com/pojntfx/bofied
+    - repo: github.com/rmdes/oGraph-Bluesky-Poster
       background: var(--pf-t--color--blue--70)
-      icon: docs/icon.svg
-    - repo: github.com/pojntfx/r3map
-      icon: docs/icon.svg
-      background: var(--pf-t--color--orange--60)
-    - repo: github.com/pojntfx/ram-dl
-      icon: docs/icon.svg
-      background: var(--pf-t--color--black)
-    - repo: github.com/pojntfx/htorrent
-      icon: docs/icon.svg
-      background: var(--pf-t--color--blue--60)
-    - repo: github.com/loopholelabs/drafter
-      icon: docs/icon.svg
-      background: var(--pf-t--color--black)
-- title: Apps
-  projects:
-    - repo: github.com/pojntfx/connmapper
-      background: var(--pf-t--color--green--60)
-      icon: docs/icon.svg
-    - repo: github.com/pojntfx/multiplex
-      background: var(--pf-t--color--orange--60)
-      icon: assets/meta/icon.svg
-    - repo: github.com/pojntfx/keygaen
-      background: var(--pf-t--color--blue--50)
-      icon: docs/icon-light.png
-    - repo: github.com/pojntfx/keystoregaen
-      background: var(--pf-t--color--black)
-    - repo: github.com/pojntfx/html2goapp
-      background: var(--pf-t--color--purple--70)
-    - repo: github.com/pojntfx/sessions
-      background: var(--pf-t--color--blue--50)
-      icon: assets/meta/icon.svg
-    - repo: github.com/loopholelabs/latensee
-      background: var(--pf-t--color--black)
-      icon: docs/icon.svg
-- title: Development Tooling
-  projects:
-    - repo: github.com/pojntfx/bagccgop
-      background: var(--pf-t--color--green--60)
-    - repo: github.com/pojntfx/bagop
-      background: var(--pf-t--color--green--60)
-    - repo: github.com/pojntfx/hydrapp
-      background: var(--pf-t--color--green--70)
-      icon: docs/icon.svg
-    - repo: github.com/pojntfx/hydrun
+    - repo: github.com/rmdes/bsky-rss-helper
       background: var(--pf-t--color--purple--60)
-    - repo: github.com/pojntfx/alpimager
-      background: var(--pf-t--color--black)
-    - repo: github.com/pojntfx/octarchive
+    - repo: github.com/rmdes/bluesky-deleter
       background: var(--pf-t--color--orange--60)
-      icon: docs/icon.svg
-    - repo: github.com/pojntfx/pojde
-      background: var(--pf-t--color--green--70)
-    - repo: github.com/pojntfx/grpc-examples
+
+- title: OSINT & Archiving
+  projects:
+    - repo: github.com/osintukraine/tg-archiver
       background: var(--pf-t--color--green--60)
-- title: Distributed Computing
+
+- title: Personal Projects
   projects:
-    - repo: github.com/pojntfx/saltpanelo
+    - repo: github.com/rmdes/tanzawa
       background: var(--pf-t--color--purple--70)
-      icon: docs/icon-light.png
-    - repo: github.com/pojntfx/panrpc
-      background: var(--pf-t--color--blue--70)
-      icon: docs/icon.svg
-    - repo: github.com/pojntfx/unisockets
-      background: var(--pf-t--color--orange--60)
-    - repo: github.com/pojntfx/tinynet
-      background: var(--pf-t--color--blue--60)
-    - repo: github.com/pojntfx/nebulark
-      background: var(--pf-t--color--orange--60)
-    - repo: github.com/pojntfx/webnetes
-      background: var(--pf-t--color--red--60)
-- title: Management Daemons
-  projects:
-    - repo: github.com/pojntfx/go-isc-dhcp
+    - repo: github.com/rmdes/innerlogs
       background: var(--pf-t--color--black)
-    - repo: github.com/pojntfx/gon2n
-      background: var(--pf-t--color--purple--70)
-    - repo: github.com/pojntfx/ipxebuilderd
-      background: var(--pf-t--color--blue--60)
-    - repo: github.com/pojntfx/dibs
-      background: var(--pf-t--color--blue--70)
-- title: Uni Notes
-  projects:
-    - repo: github.com/pojntfx/uni-webdev-backend-notes
-      background: var(--pf-t--color--black)
-    - repo: github.com/pojntfx/uni-distributedsystems-notes
-      background: var(--pf-t--color--orange--60)
-    - repo: github.com/pojntfx/uni-programminglanguages-notes
-      background: var(--pf-t--color--purple--70)
-    - repo: github.com/pojntfx/uni-supply-chain-paper
-      background: var(--pf-t--color--red--60)
-    - repo: github.com/pojntfx/uni-netpractice-notes
-      background: var(--pf-t--color--orange--60)
-    - repo: github.com/pojntfx/uni-webtopics-notes
-      background: var(--pf-t--color--blue--60)
-    - repo: github.com/pojntfx/uni-sciwriting-notes
-      background: var(--pf-t--color--orange--60)
-    - repo: github.com/pojntfx/uni-appsecurity-notes
-      background: var(--pf-t--color--green--60)
-    - repo: github.com/pojntfx/uni-hci-notes
-      background: var(--pf-t--color--black)
-    - repo: github.com/pojntfx/uni-itsec-notes
-      background: var(--pf-t--color--green--70)
-    - repo: github.com/pojntfx/uni-db1-notes
-      background: var(--pf-t--color--green--60)
-    - repo: github.com/pojntfx/uni-sdi-notes
-      background: var(--pf-t--color--green--70)
-    - repo: github.com/pojntfx/uni-algodat-notes
-      background: var(--pf-t--color--purple--60)
-    - repo: github.com/pojntfx/uni-bwl-notes
-      background: var(--pf-t--color--black)
-- title: Digital Publishing
-  projects:
-    - repo: github.com/pojntfx/deliverance
-      background: var(--pf-t--color--black)
-      icon: docs/icon.svg
-    - repo: github.com/pojntfx/minitel
-      background: var(--pf-t--color--purple--70)
-    - repo: github.com/pojntfx/box
-      background: var(--pf-t--color--blue--60)
-    - repo: github.com/pojntfx/abizeitung
-      background: var(--pf-t--color--blue--70)
-    - repo: github.com/pojntfx/networked-linux-memsync
-      background: var(--pf-t--color--red--60)
-- title: Websites
-  projects:
-    - repo: github.com/pojntfx/felicitas.pojtinger.com
-      background: var(--pf-t--color--orange--60)
-    - repo: github.com/pojntfx/pojtinger.com
-      background: var(--pf-t--color--blue--60)
-    - repo: github.com/morniteaque/yaraamendiares.eu
-      background: var(--pf-t--color--purple--60)
-    - repo: github.com/morniteaque/morniteaque.org
-      background: var(--pf-t--color--black)
-    - repo: github.com/pojntfx/illustrierte-website
-      background: var(--pf-t--color--orange--60)
-    - repo: github.com/pojntfx/physio-dani.de
-      background: var(--pf-t--color--red--60)
-- title: Integrations
-  projects:
-    - repo: github.com/pojntfx/simple-direct-democracy-frontend
-      background: var(--pf-t--color--green--60)
-    - repo: github.com/pojntfx/task-timer
-      background: var(--pf-t--color--green--70)
-    - repo: github.com/pojntfx/learn-chinese-platform
-      background: var(--pf-t--color--green--60)
-    - repo: github.com/pojntfx/chinese-notes
-      background: var(--pf-t--color--green--70)
-    - repo: github.com/pojntfx/nextcloud-talk-bot-framework
-      background: var(--pf-t--color--purple--60)
-    - repo: github.com/pojntfx/consumat.io-backend
-      background: var(--pf-t--color--black)
-    - repo: github.com/pojntfx/skysweeper
-      icon: docs/icon-light.png
-      background: var(--pf-t--color--blue--60)
-    - repo: github.com/pojntfx/atmosfeed
-      icon: docs/icon-light.png
-      background: var(--pf-t--color--blue--70)
-- title: Aeronautical Engineering
-  projects:
-    - repo: github.com/pojntfx/libresat
-      background: var(--pf-t--color--black)
-    - repo: github.com/pojntfx/clusterplatform
-      background: var(--pf-t--color--purple--70)
-    - repo: github.com/pojntfx/opensdcp-website
-      background: var(--pf-t--color--blue--60)
