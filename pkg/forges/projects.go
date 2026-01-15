@@ -43,6 +43,14 @@ type InputCategory struct {
 }
 
 // Output
+type Commit struct {
+	SHA     string `yaml:"sha"`
+	Message string `yaml:"message"`
+	URL     string `yaml:"url"`
+	Date    string `yaml:"date"`
+	Author  string `yaml:"author"`
+}
+
 type OutputProject struct {
 	URL         string   `yaml:"url"`
 	Title       string   `yaml:"title"`
@@ -59,6 +67,7 @@ type OutputProject struct {
 	ForgeDomain string   `yaml:"forgeDomain"`
 	ForgeIcon   string   `yaml:"forgeIcon"`
 	ForgeName   string   `yaml:"forgeName"`
+	Commits     []Commit `yaml:"commits"`
 }
 
 type OutputCategory struct {
@@ -194,7 +203,9 @@ func (f *Forges) fetchGitHubProject(domain, owner, repo string, input InputProje
 		license = l.GetSPDXID()
 	}
 
-	commits, _, err := client.Repositories.ListCommits(f.ctx, owner, repo, &github.CommitsListOptions{})
+	commits, _, err := client.Repositories.ListCommits(f.ctx, owner, repo, &github.CommitsListOptions{
+		ListOptions: github.ListOptions{PerPage: 5},
+	})
 	if err != nil {
 		return OutputProject{}, fmt.Errorf("failed to list commits: %w", err)
 	}
@@ -202,6 +213,26 @@ func (f *Forges) fetchGitHubProject(domain, owner, repo string, input InputProje
 	latestCommitDate := project.GetPushedAt().Time
 	if len(commits) > 0 {
 		latestCommitDate = commits[0].Commit.Author.Date.Time
+	}
+
+	// Extract commit details
+	var recentCommits []Commit
+	for i, c := range commits {
+		if i >= 3 { // Limit to 3 commits
+			break
+		}
+		message := c.Commit.GetMessage()
+		// Truncate message to first line
+		if idx := strings.Index(message, "\n"); idx != -1 {
+			message = message[:idx]
+		}
+		recentCommits = append(recentCommits, Commit{
+			SHA:     c.GetSHA()[:7],
+			Message: message,
+			URL:     c.GetHTMLURL(),
+			Date:    c.Commit.Author.Date.Time.Format(time.RFC3339),
+			Author:  c.Commit.Author.GetName(),
+		})
 	}
 
 	icon := ""
@@ -228,6 +259,7 @@ func (f *Forges) fetchGitHubProject(domain, owner, repo string, input InputProje
 		ForgeDomain: domain,
 		ForgeIcon:   forge.Icon,
 		ForgeName:   forge.Name,
+		Commits:     recentCommits,
 	}, nil
 }
 
@@ -242,7 +274,9 @@ func (f *Forges) fetchForgejoProject(domain, owner, repo string, input InputProj
 		return OutputProject{}, fmt.Errorf("failed to get Forgejo repository: %w", err)
 	}
 
-	commits, _, err := client.ListRepoCommits(owner, repo, forgejo.ListCommitOptions{})
+	commits, _, err := client.ListRepoCommits(owner, repo, forgejo.ListCommitOptions{
+		ListOptions: forgejo.ListOptions{PageSize: 5},
+	})
 	if err != nil {
 		return OutputProject{}, fmt.Errorf("failed to list commits: %w", err)
 	}
@@ -266,6 +300,30 @@ func (f *Forges) fetchForgejoProject(domain, owner, repo string, input InputProj
 		if commitDate, err := time.Parse(time.RFC3339, commits[0].RepoCommit.Author.Date); err == nil {
 			latestCommitDate = commitDate
 		}
+	}
+
+	// Extract commit details
+	var recentCommits []Commit
+	for i, c := range commits {
+		if i >= 3 { // Limit to 3 commits
+			break
+		}
+		message := c.RepoCommit.Message
+		// Truncate message to first line
+		if idx := strings.Index(message, "\n"); idx != -1 {
+			message = message[:idx]
+		}
+		commitDate := ""
+		if t, err := time.Parse(time.RFC3339, c.RepoCommit.Author.Date); err == nil {
+			commitDate = t.Format(time.RFC3339)
+		}
+		recentCommits = append(recentCommits, Commit{
+			SHA:     c.SHA[:7],
+			Message: message,
+			URL:     c.HTMLURL,
+			Date:    commitDate,
+			Author:  c.RepoCommit.Author.Name,
+		})
 	}
 
 	icon := ""
@@ -292,5 +350,6 @@ func (f *Forges) fetchForgejoProject(domain, owner, repo string, input InputProj
 		ForgeDomain: domain,
 		ForgeIcon:   forge.Icon,
 		ForgeName:   forge.Name,
+		Commits:     recentCommits,
 	}, nil
 }
