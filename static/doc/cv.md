@@ -1,8 +1,8 @@
 ---
 author: [Curriculum Vitae]
-date: "2025-02-20"
-subject: "CV of Felicitas Pojtinger"
-keywords: [cv, curriculum-vitae, resume]
+date: "2026-01-15"
+subject: "CV of Ricardo Mendes"
+keywords: [cv, curriculum-vitae, resume, devops, solution-architect]
 lang: "en"
 geometry: "left=2cm,right=2cm,top=2.5cm,bottom=2.5cm"
 papersize: a4
@@ -20,8 +20,8 @@ header-includes:
 \hypertarget{curriculum-vitae}{%
 \section*{\centering Curriculum Vitae}\label{curriculum-vitae}}
 
-\hypertarget{curriculum-vitae}{%
-\subsection*{\centering Felicitas Pojtinger (she/her)}\label{curriculum-vitae}}
+\hypertarget{name}{%
+\subsection*{\centering Ricardo Mendes}\label{name}}
 
 \vspace*{0.5cm}
 
@@ -31,19 +31,18 @@ header-includes:
 
 \begin{minipage}{.5\textwidth}
 \begin{tabular}{@{}p{4cm}l@{}}
-\textbf{Residence:} & NA: Vancouver, BC, Canada \\
-& EU: Baiersbronn, Germany \\
-\textbf{Phone:} & NA: \href{tel:+17788755416}{+1 778 875 5416} \\
-& EU: \href{tel:+4915233842326}{+49 1523 3842326} \\
-\textbf{Website:} & \href{https://felicitas.pojtinger.com/}{felicitas.pojtinger.com} \\
-\textbf{Email:} & \href{mailto:felicitas@pojtinger.com}{felicitas@pojtinger.com} \\
-\textbf{Date of birth:} & 2001-02-02
+\textbf{Residence:} & Brussels, Belgium \\
+\textbf{Website:} & \href{https://rmendes.net}{rmendes.net} \\
+\textbf{Blog:} & \href{https://blog.rmendes.net}{blog.rmendes.net} \\
+\textbf{Email:} & \href{mailto:rick@rmendes.net}{rick@rmendes.net} \\
+\textbf{GitHub:} & \href{https://github.com/rmdes}{github.com/rmdes} \\
+\textbf{LinkedIn:} & \href{https://linkedin.com/in/rmdes}{linkedin.com/in/rmdes}
 \end{tabular}
 \end{minipage}
 \Begin{minipage}{.5\textwidth}
 \Begin{flushright}
 
-![Avatar](https://github.com/pojntfx.png){ width=4cm }
+![Avatar](https://github.com/rmdes.png){ width=4cm }
 
 \End{flushright}
 \End{minipage}
@@ -52,27 +51,39 @@ header-includes:
 
 \noindent\makebox[\linewidth]{\rule{\paperwidth}{0.4pt}}
 
+\vspace*{0.3cm}
+
+*There is always a solution. I love all things digital, my passion is to share my knowledge through trainings, coaching and advising. I love to work on solutions for problems, even more when they are related to real challenges facing our societies, democracy, climate or migration.*
+
 \vspace*{0.5cm}
-
-## Education
-
-\begin{tabular}{@{}p{4cm}l@{}}
-\textbf{2020 - 2023/08:} & Student at HdM Stuttgart, Germany. \\
-& Graduated with a B.Sc in Media Informatics (DE: 1.0, US: 4.0) \\
-\textbf{2011 - 2019/08:} & Student at Richard-von-Weizsäcker high school in Baiersbronn, Germany \\
-& Graduated with a Baden-Württemberg Abitur (DE: 1.4, US: 3.8) \\
-\textbf{2007 - 2011/08:} & Student at Wilhelm Münster elementary school in Baiersbronn, Germany
-\end{tabular}
-
-\vspace*{0.75cm}
 
 ## Work Experience
 
 \begin{tabular}{@{}p{4cm}l@{}}
-\textbf{2025/10 - present:} & Head of Research and Development at Loophole Labs, Inc \\
-\textbf{2022/07 - 2025/10:} & Founding Engineer at Loophole Labs, Inc \\
-\textbf{2021/06 - 2022/07:} & Software Developer at Incloud Engineering GmbH (acquired by q.beyond AG) \\
-\textbf{2019/10 - 2021/06:} & Software Developer at DE software \& control GmbH \\
+\textbf{2023/11 - present:} & Middleware Engineer at FGTB-ABVV, Brussels \\
+\textbf{2022/02 - present:} & Solution Architect at OSINTukraine.com (Volunteer) \\
+\textbf{2021/09 - 2022/03:} & BeCode DevOps Training, Brussels \\
+\textbf{2018/10 - 2020/03:} & CTO at DigitYser, Brussels \\
+\textbf{2016/05 - 2021:} & Solution Architect at Armada.digital (Freelance) \\
+\textbf{2020/03 - 2020/05:} & FactChecking at Journalistes Solidaires (Volunteer) \\
+\textbf{2019/02 - 2020/03:} & Event Manager at European Data Innovation Hub \\
+\textbf{2019 - 2020:} & Technical Advisor at WomenPreneur-Initiative (Volunteer) \\
+\textbf{2019/05 - 2019/12:} & Technical Advisor at BookVillage (Volunteer) \\
+\textbf{2019/01 - 2020/01:} & Technical Advisor at Promote Ukraine (Freelance)
+\end{tabular}
+
+\vspace*{0.75cm}
+
+## Skills
+
+\begin{tabular}{@{}p{4cm}l@{}}
+\textbf{Containers:} & OpenShift, Kubernetes, Docker, Docker Swarm \\
+\textbf{Automation:} & Ansible, Vagrant, GitLab CI/CD, Jenkins \\
+\textbf{Monitoring:} & Prometheus, Grafana \\
+\textbf{Systems:} & Linux Administration, System Administration \\
+\textbf{Hosting:} & On-Premise, Cloud (VMware, Cloudron) \\
+\textbf{Web:} & WordPress, Nginx, Redis, TLS/SSL \\
+\textbf{Security:} & SonarQube, Information Assurance \\
 \end{tabular}
 
 \vspace*{0.75cm}
@@ -80,90 +91,74 @@ header-includes:
 ## Languages
 
 \begin{tabular}{@{}p{4cm}l@{}}
-\textbf{English:} & CEFR C2 (IELTS General Band 8) \\
-\textbf{German:} & CEFR C2 \\
-\textbf{French:} & CEFR B1
+\textbf{French:} & Fluent \\
+\textbf{English:} & Fluent \\
+\textbf{Portuguese:} & Native \\
+\textbf{Spanish:} & Conversational
 \end{tabular}
 
 \vspace*{0.75cm}
 
-## Tech Stack
+## Education
 
 \begin{tabular}{@{}p{4cm}l@{}}
-\textbf{Languages:} & Go, TypeScript/JavaScript, Rust \\
-\textbf{UI:} & React, Wasm, JAMStack, SASS/SCSS, GNOME/GTK4 \\
-\textbf{Databases:} & SQLite, PostgreSQL, MariaDB/MySQL, Valkey/Redis \\
-\textbf{APIs:} & REST, gRPC, GraphQL \\
-\textbf{DevOps:} & Linux, Docker, Kubernetes, Firecracker, OpenTofu/Terraform \\
-\textbf{Clouds:} & AWS, Google Cloud, Azure, Hetzner, DigitalOcean, Equinix Metal \\
-\textbf{Integration:} & GitHub, GitLab, Forgejo/Gitea \\
+\textbf{2021 - 2022:} & BeCode DevOps Training, Brussels \\
+& 7-month intensive DevOps specialization \\
+\textbf{1998 - 2001:} & Bachelor's in Management Information Technology \\
+& ISLA - Instituto Superior de Gestão e Tecnologia \\
+& Curso Técnico Superior Profissional de Informática de Gestão
 \end{tabular}
 
 \newpage
 
-## Projects
+## Professional Experience Details
 
-For more up-to-date info, please see [github.com/pojntfx](https://github.com/pojntfx) and [linkedin.com/in/pojntfx](https://www.linkedin.com/in/pojntfx/).
+**Middleware Engineer - FGTB-ABVV** (2023 - present)\vspace{-3mm}
 
-**2024-2025**\vspace{-3mm}
+- Technology Specialist focusing on IT infrastructure and application delivery
+- Strategic migration of Java applications from legacy IBM Datapowers and PureApp systems
+- Containerized application deployment on VMware Linux and OpenShift Kubernetes clusters
+- Mastering OpenShift, Kubernetes, and Docker technologies\vspace{-2.5mm}
 
-- Working on the **"Drafter"** virtualization and live migration primitive
-- Building the **"panrpc"** RPC framework
-- Creating the **"hydrapp"** browser-based desktop application toolkit\vspace{-2.5mm}
+**Solution Architect - OSINTukraine.com** (2022 - present)\vspace{-3mm}
 
-**2023**\vspace{-3mm}
+- Open-source intelligence (OSINT) initiative for Ukraine conflict monitoring
+- Collection, archiving, translation, analysis and dissemination of critical information
+- Monitoring Russian Telegram channels with filtering, categorization, and archiving
+- Sub-projects: War crimes archive, Drones research, Location-related alerts system\vspace{-2.5mm}
 
-- Published bachelor's thesis **"Efficient Synchronization of Linux Memory Regions over a Network"**
-- Created **"Multiplex"**, an app to watch torrents with friends
-- Built **"r3map"**, a high-performance remote memory library
-- Built **"go-nbd"**, a pure Go NBD server and client library
-- Created **"Connmapper"**, an internet connection visualizer\vspace{-2.5mm}
+**BeCode DevOps Training** (2021 - 2022)\vspace{-3mm}
 
-**2022**\vspace{-3mm}
+- Vagrant and Ansible infrastructure as code for WordPress, Nginx, Redis
+- Docker Swarm cluster management (Funkwhale, Redis, Nginx)
+- GitLab CI/CD with SonarQube security audits
+- Jenkins pipelines for Petclinic build/release/deploy
+- Python basics, Networking fundamentals, Monitoring with Prometheus/Grafana\vspace{-2.5mm}
 
-- Developed **"octarchive"**, a tool for GitHub and Gitea backups
-- Built **"weron"**, an overlay network based on WebRTC
-- Created **"STFS"**, a file system for LTO tape drives\vspace{-2.5mm}
+**CTO - DigitYser** (2018 - 2020)\vspace{-3mm}
 
-**2020-2021**\vspace{-3mm}
+- Digital flagship of tech communities in Brussels
+- Hosting infrastructure and automation
+- Integrations with digital marketing tools
+- Technical Event Management: Livestreaming, sound, video, photos\vspace{-2.5mm}
 
-- Built **"liwasc"** and **"invaentory"**, network and port scanners
-- Created **"bofied"**, a network boot server
-- Developed **"keygaen"**, a WebAssembly PGP tool
-- Built **"pojde"**, a multi-tenant development environment
-- Created **"Webnetes"**, a peer-to-peer computing platform based on Wasm
-- Developed **"unisockets"** and **"tinynet"**, POSIX sockets implementations for Wasm
-- Created **"alpimager"**, a tool for Alpine Linux images
-- Built **"gloeth"**, an overlay network manager
-- Developed **"gon2n"**, a P2P VPN\vspace{-2.5mm}
+**Solution Architect - Armada.digital** (2016 - 2021)\vspace{-3mm}
 
-**2018-2019**\vspace{-3mm}
+- Consultancy to amplify visibility of good causes
+- Custom communication and collaboration solutions
+- Empowering individuals and ethical businesses\vspace{-2.5mm}
 
-- Built **"infractl"**, a cluster management tool
-- Developed a **design system for digital publishing**
-- Created multiple **websites for local businesses**
-- Built **"Learn Chinese Platform"**, a platform for learning Mandarin and Cantonese
-- Continued **"LibreSat"**, a CubeSat development environment
-- Created **"Simple Direct Democracy"**, an e-voting platform
-- Hosted **"CoffeeCodeContribute"** boot camp
-- Developed **"IraSync"**, a social media platform
-- Created **"Die Illustrierte"**, a digital publishing platform\vspace{-2.5mm}
+**FactChecking - Journalistes Solidaires** (2020)\vspace{-3mm}
 
-**2016-2017**\vspace{-3mm}
+- Cloudron/Docker backend for factchecking workflow
+- WordPress with custom post types for COVID-19 disinformation monitoring\vspace{-2.5mm}
 
-- Developed **"OpenSDCP"** and **OpenSNET**, a satellite development platform and network
-- Interned at **"Institut für Raumfahrtsysteme"** in Stuttgart
-- Presented **"MOVA4GIT"** ion thruster at Airbus Defense and Space
-- Contributed to **nanosatellite communication systems** at Aerospace Lab Herrenberg
-- Won the **"VonBWinsAll"** competition with "ModSat" nanosatellite/CubeSat project
-- Participated in **"Jugend Forscht"** competition with the "SIEO" nanosatellite/CubeSat project\vspace{-2.5mm}
+## Interests
 
-**2011-2014**\vspace{-3mm}
+\begin{tabular}{@{}p{4cm}l@{}}
+\textbf{Music:} & Music Production DAWs, Ableton Live, Ableton Push 3
+\end{tabular}
 
-- Created **"thelink"** high-FOV VR headset
-- Competed in **"Jugend Forscht" with "theview"** AR headset
-- Participated in **"Umweltmentor"** climate protection program
-- Developed the **"SIE" nanosatellite/CubeSat ion engine**
-- Created **"iHD2/NiroOS"**, an Android distribution for the HTC HD2
+\vspace*{1cm}
 
-Last updated 2025-10-17, Vancouver, British Columbia, Canada (Felicitas Pojtinger)
+Last updated 2026-01-15, Brussels, Belgium (Ricardo Mendes)
