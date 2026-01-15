@@ -16,109 +16,176 @@
     </div>
 
     <div class="lastcommit">
-      <div
-        class="pf-v6-c-code-block pf-v6-x-u-transparent pf-v6-x-u-borderless pf-v6-u-p-sm pf-v6-u-pl-xs"
-      >
-        <div class="pf-v6-c-code-block__header pf-v6-u-pl-0 pf-v6-u-py-sm">
-          <div
-            class="pf-v6-c-code-block__actions pf-v6-c-code-block__actions--info pf-v6-u-flex-direction-column pf-v6-u-flex-direction-row-on-lg"
-          >
-            <div
-              class="pf-v6-c-code-block__actions-item pf-v6-u-px-md"
-            >
-              <span class="lastcommit__content pf-v6-u-display-none">Last <span class="lastcommit__forge__name"></span> commit by</span>
-              <div class="lastcommit__skeleton pf-v6-c-skeleton pf-m-text-sm pf-m-width-sm pf-v6-u-display-inline-block">
-                <span class="pf-v6-screen-reader">Loading commit info</span>
-              </div>
-              <a class="lastcommit__user__url lastcommit__content pf-v6-u-display-none pf-v6-u-ml-xs" target="_blank">
-                <img id="lastcommit__user__url__img" />
-              </a>
-            </div>
-
-            <div
-              class="pf-v6-c-code-block__actions-item"
-            >
-              <a class="lastcommit__repo__url lastcommit__content pf-v6-u-display-none" target="_blank">
-                <i class="fas fa-code-branch" aria-hidden="true"></i>
-                <span class="lastcommit__repo__name"></span> (<span
-                  class="lastcommit__commit__time"
-                ></span
-                >)
-              </a>
-              <div class="lastcommit__skeleton pf-v6-c-skeleton pf-m-text-sm pf-m-width-sm pf-v6-u-display-inline-block">
-                <span class="pf-v6-screen-reader">Loading repository info</span>
-              </div>
-            </div>
-          </div>
-        </div>
-        <div class="pf-v6-u-pl-0 pf-v6-c-code-block__content">
-          <pre
-            class="pf-v6-c-code-block__pre pf-v6-x-u-nowrap pf-v6-x-u-overflow-x-auto"
-          ><code class="pf-v6-c-code-block__code lastcommit__commit__message lastcommit__content pf-v6-u-display-none"></code><div class="lastcommit__skeleton lastcommit__commit__message__skeleton pf-v6-c-skeleton"><span class="pf-v6-screen-reader">Loading commit message</span></div></pre>
-        </div>
+      <div class="lastcommit__carousel" style="position: relative; overflow: hidden;">
+        <!-- Slides will be inserted here by JS -->
       </div>
+      <!-- Navigation dots -->
+      <div class="lastcommit__dots pf-v6-u-display-flex pf-v6-u-justify-content-center pf-v6-u-mt-xs" style="gap: 6px;"></div>
     </div>
   </div>
 </div>
 
+<!-- Template for slide content -->
+<template id="{{ .ID }}-slide-template">
+  <div class="lastcommit__slide">
+    <div class="pf-v6-c-code-block pf-v6-x-u-transparent pf-v6-x-u-borderless pf-v6-u-p-sm pf-v6-u-pl-xs">
+      <div class="pf-v6-c-code-block__header pf-v6-u-pl-0">
+        <div class="pf-v6-c-code-block__actions pf-v6-c-code-block__actions--info pf-v6-u-flex-direction-column pf-v6-u-flex-direction-row-on-lg">
+          <div class="pf-v6-c-code-block__actions-item pf-v6-u-px-md pf-v6-u-py-sm">
+            <span>Last <span class="slide__forge-name"></span> commit by</span>
+            <a class="slide__user-link pf-v6-u-ml-xs pf-v6-u-display-inline-flex" target="_blank">
+              <img class="slide__user-badge" />
+            </a>
+          </div>
+          <div class="pf-v6-c-code-block__actions-item pf-v6-u-pb-sm pf-v6-u-pt-sm-on-lg">
+            <a class="slide__commit-link" target="_blank">
+              <i class="fas fa-code-branch" aria-hidden="true"></i>
+              <span class="slide__repo-name"></span> (<span class="slide__time-ago"></span>)
+            </a>
+          </div>
+        </div>
+      </div>
+      <div class="pf-v6-u-pl-0 pf-v6-c-code-block__content">
+        <pre class="pf-v6-c-code-block__pre pf-v6-x-u-nowrap pf-v6-x-u-overflow-x-auto"><code class="pf-v6-c-code-block__code slide__commit-message"></code></pre>
+      </div>
+    </div>
+  </div>
+</template>
+
 <noscript>Please enable JavaScript to view the latest commit.</noscript
 ><script type="module">
 const base = "{{ .BaseURL }}";
-const container = document.querySelector("#{{ .ID }}");
+const containerId = "{{ .ID }}";
+const container = document.querySelector(`#${containerId}`);
+const carousel = container.querySelector(".lastcommit__carousel");
+const dotsContainer = container.querySelector(".lastcommit__dots");
+const slideTemplate = document.getElementById(`${containerId}-slide-template`);
 
-const lastCommit = await (
-  await fetch(`${base}api/forges?username={{ .Username }}`)
-).json();
+// Fetch multiple activities
+const response = await fetch(`${base}api/forges?username={{ .Username }}`);
+const data = await response.json();
 
-// Forge icon and name
+// Normalize to array (API returns single object when limit=1)
+const commits = Array.isArray(data) ? data : [data];
+
+if (commits.length === 0) {
+  container.style.display = "none";
+  throw new Error("No commits found");
+}
+
+// Use first commit for user info (same for all)
+const firstCommit = commits[0];
+
+// Forge icon and link
 const forgeIcon = container.querySelector(".lastcommit__forge__icon");
-forgeIcon.src = lastCommit.forgeIcon;
-forgeIcon.alt = lastCommit.forgeDomain;
+forgeIcon.src = firstCommit.forgeIcon;
+forgeIcon.alt = firstCommit.forgeDomain;
 
-container.querySelector(".lastcommit__forge__name").innerText = lastCommit.forgeName;
-
-// User
 container.querySelectorAll(".lastcommit__user__url").forEach(el => {
-  el.href = lastCommit.userURL;
+  el.href = firstCommit.userURL;
 });
 
-const img = container.querySelector("#lastcommit__user__url__img");
+// Build slides using template
+commits.forEach((commit, index) => {
+  const slideFragment = slideTemplate.content.cloneNode(true);
+  const slide = slideFragment.querySelector(".lastcommit__slide");
 
-img.alt =
-  lastCommit.username + " with " + lastCommit.userFollowerCount + " followers";
-img.src =
-  "https://img.shields.io/badge/%40" +
-  lastCommit.username +
-  "-" +
-  lastCommit.userFollowerCount +
-  "%20followers-brightgreen?logo=" + lastCommit.forgeShield + "&style=social";
+  // Style the slide
+  slide.style.position = index === 0 ? "relative" : "absolute";
+  slide.style.top = "0";
+  slide.style.left = "0";
+  slide.style.width = "100%";
+  slide.style.opacity = index === 0 ? "1" : "0";
+  slide.style.transition = "opacity 0.5s ease-in-out";
 
-// Commit
-container
-  .querySelectorAll(".lastcommit__commit__url")
-  .forEach((c) => {
-    c.href = lastCommit.lastCommitURL;
+  // Calculate time ago
+  const diff = Math.ceil((new Date() - new Date(commit.lastCommitTime)) / 36e5);
+  const timeAgo = diff >= 0 ? diff + " hour" + (diff == 1 ? "" : "s") + " ago" : "just now";
+
+  // Truncate message
+  const firstLine = commit.lastCommitMessage.split('\n')[0];
+  const truncatedMessage = firstLine.length > 80 ? firstLine.substring(0, 77) + "…" : firstLine;
+
+  // Truncate repo name
+  const truncatedRepo = commit.lastCommitRepoName.length > 24
+    ? commit.lastCommitRepoName.substring(0, 19) + " …"
+    : commit.lastCommitRepoName;
+
+  // Fill in the template values safely using textContent and attributes
+  slide.querySelector(".slide__forge-name").textContent = commit.forgeName;
+  slide.querySelector(".slide__user-link").href = commit.userURL;
+
+  const userBadge = slide.querySelector(".slide__user-badge");
+  userBadge.alt = commit.username + " with " + commit.userFollowerCount + " followers";
+  userBadge.src = "https://img.shields.io/badge/%40" + encodeURIComponent(commit.username) + "-" + commit.userFollowerCount + "%20followers-brightgreen?logo=" + encodeURIComponent(commit.forgeShield) + "&style=social";
+
+  slide.querySelector(".slide__commit-link").href = commit.lastCommitURL;
+  slide.querySelector(".slide__repo-name").textContent = truncatedRepo;
+  slide.querySelector(".slide__time-ago").textContent = timeAgo;
+  slide.querySelector(".slide__commit-message").textContent = truncatedMessage;
+
+  carousel.appendChild(slide);
+});
+
+// Create navigation dots if more than 1 commit
+if (commits.length > 1) {
+  commits.forEach((_, index) => {
+    const dot = document.createElement("button");
+    dot.className = "lastcommit__dot";
+    dot.setAttribute("aria-label", "Go to activity " + (index + 1));
+    dot.style.width = "8px";
+    dot.style.height = "8px";
+    dot.style.borderRadius = "50%";
+    dot.style.border = "none";
+    dot.style.background = index === 0 ? "var(--pf-t--global--color--brand--200)" : "var(--pf-t--global--border--color--default)";
+    dot.style.cursor = "pointer";
+    dot.style.padding = "0";
+    dot.style.transition = "background 0.3s";
+    dot.onclick = () => goToSlide(index);
+    dotsContainer.appendChild(dot);
   });
+}
 
-const diff = Math.ceil(
-  (new Date() - new Date(lastCommit.lastCommitTime)) / 36e5
-);
+const slides = carousel.querySelectorAll(".lastcommit__slide");
+const dots = dotsContainer.querySelectorAll(".lastcommit__dot");
+let currentSlide = 0;
+let autoSlideInterval;
 
-container.querySelector(".lastcommit__commit__time").innerText =
-  diff >= 0 ? diff + " hour" + (diff == 1 ? "" : "s") + " ago" : "just now";
+function goToSlide(index) {
+  slides[currentSlide].style.opacity = "0";
+  slides[currentSlide].style.position = "absolute";
+  if (dots[currentSlide]) {
+    dots[currentSlide].style.background = "var(--pf-t--global--border--color--default)";
+  }
 
-const firstLine = lastCommit.lastCommitMessage.split('\n')[0];
-container.querySelector(".lastcommit__commit__message").innerText =
-  firstLine.length > 80 ? `${firstLine.substring(0, 77)}…` : firstLine;
+  currentSlide = index;
 
-// Repo
-container.querySelector(".lastcommit__repo__url").href =
-  lastCommit.lastCommitURL;
+  slides[currentSlide].style.opacity = "1";
+  slides[currentSlide].style.position = "relative";
+  if (dots[currentSlide]) {
+    dots[currentSlide].style.background = "var(--pf-t--global--color--brand--200)";
+  }
 
-container.querySelector(".lastcommit__repo__name").innerText =
-  lastCommit.lastCommitRepoName.length > 24 ? `${lastCommit.lastCommitRepoName.substring(0, 19)} …` : lastCommit.lastCommitRepoName;
+  resetAutoSlide();
+}
 
-// Styling patches
+function nextSlide() {
+  goToSlide((currentSlide + 1) % commits.length);
+}
+
+function resetAutoSlide() {
+  if (autoSlideInterval) clearInterval(autoSlideInterval);
+  if (commits.length > 1) {
+    autoSlideInterval = setInterval(nextSlide, 5000);
+  }
+}
+
+// Start auto-sliding if multiple commits
+if (commits.length > 1) {
+  resetAutoSlide();
+}
+
+// Hide skeletons and show content
 container.querySelectorAll(".lastcommit__skeleton").forEach(el => {
   el.classList.remove("pf-v6-u-display-inline-block", "pf-v6-u-display-flex-on-md");
   el.classList.add("pf-v6-u-display-none");
@@ -129,11 +196,5 @@ container.querySelectorAll(".lastcommit__content").forEach(el => {
 });
 container.querySelector(".lastcommit__user__url.lastcommit__content").classList.remove("pf-v6-u-display-inline");
 container.querySelector(".lastcommit__user__url.lastcommit__content").classList.add("pf-v6-u-display-flex");
-
-const actionsItems = container.querySelectorAll(".pf-v6-c-code-block__actions-item");
-actionsItems[0].classList.add("pf-v6-u-py-sm");
-actionsItems[1].classList.add("pf-v6-u-pb-sm", "pf-v6-u-pt-sm-on-lg");
-
-container.querySelector(".pf-v6-c-code-block__header").classList.remove("pf-v6-u-py-sm");
 
 </script>

@@ -183,15 +183,15 @@ $bg: "/img/bg.png";
 
 .pf-v6-x-person__header {
   max-width: 1024px;
-  margin: 3rem auto;
-  margin-bottom: 5rem;
+  margin: 2rem auto;
+  margin-bottom: 3.5rem;
 
   @media screen and (min-width: 826px) {
-    margin-bottom: 3rem !important;
+    margin-bottom: 2rem !important;
   }
 
   @media screen and (min-width: 1146px) {
-    margin-bottom: 2rem !important;
+    margin-bottom: 1.5rem !important;
   }
 
   &,
@@ -288,7 +288,7 @@ $bg: "/img/bg.png";
 }
 
 .pf-v6-c-page__main--with-overlay {
-  padding-top: 100px;
+  padding-top: 80px;
   background: color-mix(
     in srgb,
     var(--pf-x-base-color) 5%,
@@ -403,12 +403,12 @@ $bg: "/img/bg.png";
   position: fixed;
   left: 0;
   right: 0;
-  height: 100px;
+  height: 80px;
 
   &.pf-v6-c-page__header--overlay--index {
     position: relative;
     margin: 0 auto;
-    margin-bottom: -100px;
+    margin-bottom: -80px;
   }
 }
 

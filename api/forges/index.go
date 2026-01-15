@@ -70,6 +70,28 @@ func ForgesHandler(w http.ResponseWriter, r *http.Request, forgesYAML []byte, to
 		panic("missing username query parameter")
 	}
 
+	// Support limit parameter for multiple results
+	// Default from GITHUB_ACTIVITY_LIMIT env var, or 1 for backwards compatibility
+	limit := 1
+	if envLimit := os.Getenv("GITHUB_ACTIVITY_LIMIT"); envLimit != "" {
+		if l, err := fmt.Sscanf(envLimit, "%d", &limit); err != nil || l != 1 {
+			limit = 1
+		}
+	}
+	// Query param overrides env var
+	if limitStr := r.URL.Query().Get("limit"); limitStr != "" {
+		if l, err := fmt.Sscanf(limitStr, "%d", &limit); err != nil || l != 1 {
+			limit = 1
+		}
+	}
+	// Enforce bounds
+	if limit < 1 {
+		limit = 1
+	}
+	if limit > 10 {
+		limit = 10
+	}
+
 	var forgesList []ForgeConfig
 	if err := yaml.Unmarshal(forgesYAML, &forgesList); err != nil {
 		panic(err)
@@ -80,25 +102,31 @@ func ForgesHandler(w http.ResponseWriter, r *http.Request, forgesYAML []byte, to
 	for _, forge := range forgesList {
 		token := tokens[forge.Domain]
 
-		var output Output
+		var outputs []Output
 		var err error
 
 		switch forge.Type {
 		case ForgeTypeGitHub:
-			output, err = fetchGitHubActivity(r, forge, username, token)
+			outputs, err = fetchGitHubActivities(r, forge, username, token, limit)
 		case ForgeTypeForgejo:
-			output, err = fetchForgejoActivity(r, forge, username, token)
+			output, ferr := fetchForgejoActivity(r, forge, username, token)
+			if ferr == nil {
+				outputs = []Output{output}
+			}
+			err = ferr
 		}
 
 		if err != nil {
 			panic(err)
 		}
 
-		output.ForgeIcon = forge.Icon
-		output.ForgeDomain = forge.Domain
-		output.ForgeName = forge.Name
-		output.ForgeShield = forge.Shield
-		results = append(results, output)
+		for i := range outputs {
+			outputs[i].ForgeIcon = forge.Icon
+			outputs[i].ForgeDomain = forge.Domain
+			outputs[i].ForgeName = forge.Name
+			outputs[i].ForgeShield = forge.Shield
+		}
+		results = append(results, outputs...)
 	}
 
 	if len(results) == 0 {
@@ -119,7 +147,23 @@ func ForgesHandler(w http.ResponseWriter, r *http.Request, forgesYAML []byte, to
 		return ti.After(tj)
 	})
 
-	j, err := json.Marshal(results[0])
+	// Limit results
+	if len(results) > limit {
+		results = results[:limit]
+	}
+
+	// Return single object for backwards compatibility when limit=1
+	if limit == 1 {
+		j, err := json.Marshal(results[0])
+		if err != nil {
+			panic(err)
+		}
+		fmt.Fprintf(w, "%v", string(j))
+		return
+	}
+
+	// Return array when limit > 1
+	j, err := json.Marshal(results)
 	if err != nil {
 		panic(err)
 	}
@@ -128,6 +172,17 @@ func ForgesHandler(w http.ResponseWriter, r *http.Request, forgesYAML []byte, to
 }
 
 func fetchGitHubActivity(r *http.Request, forge ForgeConfig, username string, token string) (Output, error) {
+	outputs, err := fetchGitHubActivities(r, forge, username, token, 1)
+	if err != nil {
+		return Output{}, err
+	}
+	if len(outputs) == 0 {
+		return Output{}, errNoActivityFoundFromAnyForge
+	}
+	return outputs[0], nil
+}
+
+func fetchGitHubActivities(r *http.Request, forge ForgeConfig, username string, token string, limit int) ([]Output, error) {
 	var httpClient *http.Client
 	if token != "" {
 		httpClient = oauth2.NewClient(
@@ -145,35 +200,44 @@ func fetchGitHubActivity(r *http.Request, forge ForgeConfig, username string, to
 	var err error
 	client.BaseURL, err = url.Parse(forge.API)
 	if err != nil {
-		return Output{}, err
+		return nil, err
 	}
 
 	user, _, err := client.Users.Get(r.Context(), username)
 	if err != nil {
-		return Output{}, err
+		return nil, err
 	}
 
 	events, _, err := client.Activity.ListEventsPerformedByUser(r.Context(), username, true, nil)
 	if err != nil {
-		return Output{}, err
+		return nil, err
 	}
 
-	output := Output{
+	baseOutput := Output{
 		UserName:          user.GetLogin(),
 		UserFollowerCount: user.GetFollowers(),
 		UserURL:           user.GetHTMLURL(),
 	}
 
-	var event *github.Event
+	// Collect push events up to limit
+	var pushEvents []*github.Event
 	for _, candidate := range events {
 		if candidate.GetType() == typePushEvent {
-			event = candidate
-
-			break
+			pushEvents = append(pushEvents, candidate)
+			if len(pushEvents) >= limit {
+				break
+			}
 		}
 	}
 
-	if event != nil {
+	if len(pushEvents) == 0 {
+		return nil, nil
+	}
+
+	var outputs []Output
+
+	for _, event := range pushEvents {
+		output := baseOutput
 		output.LastCommitTime = event.GetCreatedAt().Format(time.RFC3339)
 
 		owner, repoName := path.Split(event.GetRepo().GetName())
@@ -181,7 +245,8 @@ func fetchGitHubActivity(r *http.Request, forge ForgeConfig, username string, to
 
 		repo, _, err := client.Repositories.Get(r.Context(), owner, repoName)
 		if err != nil {
-			return Output{}, err
+			// Skip this event if we can't get repo info
+			continue
 		}
 
 		if repo != nil {
@@ -191,18 +256,18 @@ func fetchGitHubActivity(r *http.Request, forge ForgeConfig, username string, to
 
 		rawPayload, err := event.ParsePayload()
 		if err != nil {
-			return Output{}, err
+			continue
 		}
 
 		pushEvent, ok := rawPayload.(*github.PushEvent)
 		if !ok {
-			return Output{}, errInvalidPushEvent
+			continue
 		}
 
 		if pushEvent.Head != nil {
 			commit, _, err := client.Repositories.GetCommit(r.Context(), owner, repoName, pushEvent.GetHead(), nil)
 			if err != nil {
-				return Output{}, err
+				continue
 			}
 
 			output.LastCommitURL = commit.GetHTMLURL()
@@ -211,9 +276,11 @@ func fetchGitHubActivity(r *http.Request, forge ForgeConfig, username string, to
 				output.LastCommitMessage = commit.Commit.GetMessage()
 			}
 		}
+
+		outputs = append(outputs, output)
 	}
 
-	return output, nil
+	return outputs, nil
 }
 
 func Handler(w http.ResponseWriter, r *http.Request) {
