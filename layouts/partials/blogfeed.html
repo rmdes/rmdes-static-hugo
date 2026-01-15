@@ -1,0 +1,107 @@
+<div
+  class="pf-v6-c-card pf-v6-c-card--full-width pf-v6-c-card--transparent"
+  id="{{ .ID }}"
+>
+  <div
+    class="pf-v6-c-card__title pf-v6-l-flex pf-m-justify-content-space-between pf-m-align-items-center pf-v6-u-py-xl"
+  >
+    <span class="pf-v6-c-card__title-text">Latest Blog Posts</span>
+
+    <a
+      target="_blank"
+      class="blogfeed__home__url pf-v6-l-flex pf-m-align-items-center"
+      href="{{ .FeedUrl }}"
+    >
+      <i class="fas fa-rss pf-v6-u-mr-sm"></i>
+      <span class="blogfeed__title">Blog</span>
+    </a>
+  </div>
+  <div class="pf-v6-c-card__body blogfeed">
+    <ul
+      class="blogfeed__posts pf-v6-l-flex pf-m-column pf-m-space-items-sm"
+    >
+      {{ range seq 3 }}
+      <li class="blogfeed__skeleton">
+        <div class="pf-v6-c-card pf-m-plain pf-v6-u-color-100 pf-v6-display-flex pf-v6-u-flex-direction-column pf-m-align-items-flex-start pf-v6-c-card__body pf-v6-u-p-md">
+          <div class="pf-v6-u-w-100">
+            <div class="pf-v6-c-skeleton pf-m-text-lg pf-m-width-lg pf-v6-u-mb-sm"></div>
+            <div class="pf-v6-u-py-sm">
+              <div class="pf-v6-c-skeleton pf-m-text-md pf-v6-u-mb-xs pf-v6-u-w-100"></div>
+              <div class="pf-v6-c-skeleton pf-m-text-md pf-m-width-lg"></div>
+            </div>
+            <div class="pf-v6-c-skeleton pf-m-text-sm pf-m-width-sm pf-v6-u-mt-sm"></div>
+          </div>
+        </div>
+      </li>
+      {{ end }}
+    </ul>
+
+    <a
+      target="_blank"
+      class="blogfeed__home__url pf-v6-c-button pf-m-link pf-v6-u-mt-lg"
+    >
+      <span class="pf-v6-c-button__icon pf-m-start">
+        <i class="fas fa-arrow-right" aria-hidden="true"></i> </span
+      >All posts</a
+    >
+  </div>
+</div>
+
+<noscript>Please enable JavaScript to view the blog feed.</noscript
+><script type="module">
+  const base = "{{ .BaseURL }}";
+  const feedUrl = "{{ .FeedUrl }}";
+
+  const blogFeed = await(
+    await fetch(`${base}api/blog?feedUrl=${encodeURIComponent(feedUrl)}`)
+  ).json();
+
+  // Title and home link
+  document.querySelector("#{{ .ID }} .blogfeed__title").textContent = blogFeed.title;
+  document.querySelectorAll("#{{ .ID }} .blogfeed__home__url").forEach(el => {
+    el.href = blogFeed.homePageURL;
+  });
+
+  // Hide skeletons
+  document.querySelectorAll("#{{ .ID }} .blogfeed__skeleton").forEach(el => {
+    el.remove();
+  });
+
+  // Posts
+  blogFeed.posts.map((post) => {
+    const root = document.createElement("li")
+
+    const card = document.createElement("a");
+    card.classList.add("pf-v6-c-card", "pf-m-plain", "pf-m-clickable")
+    card.target = "_blank";
+    card.href = post.url;
+    card.classList.add("pf-v6-u-color-100", "pf-v6-display-flex", "pf-v6-u-flex-direction-column", "pf-m-align-items-flex-start", "pf-v6-c-card__body", "pf-v6-u-p-md", "pf-v6-x-m-no-decoration")
+
+    const content = document.createElement("div")
+    content.classList.add("pf-v6-u-w-100")
+
+    const postTitle = document.createElement("h4");
+    postTitle.textContent = post.title;
+    postTitle.classList.add("pf-v6-u-font-weight-bold", "pf-v6-u-mb-sm")
+    content.appendChild(postTitle);
+
+    if (post.summary) {
+      const postSummary = document.createElement("p");
+      postSummary.textContent = post.summary;
+      postSummary.classList.add("pf-v6-u-py-sm", "pf-v6-u-color-200")
+      content.appendChild(postSummary);
+    }
+
+    if (post.timestamp) {
+      const postTimestamp = document.createElement("span");
+      postTimestamp.textContent = new Date(post.timestamp).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
+      postTimestamp.classList.add("pf-v6-u-color-200", "pf-v6-u-font-size-sm", "pf-v6-u-mt-sm")
+      content.appendChild(postTimestamp);
+    }
+
+    card.appendChild(content);
+    root.append(card);
+
+    document.querySelector("#{{ .ID }} .blogfeed__posts").appendChild(root);
+  });
+</script>

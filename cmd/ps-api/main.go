@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"strconv"
 
+	"github.com/pojntfx/felicitas.pojtinger.com/api/blog"
 	"github.com/pojntfx/felicitas.pojtinger.com/api/bluesky"
 	"github.com/pojntfx/felicitas.pojtinger.com/api/forges"
 	"github.com/pojntfx/felicitas.pojtinger.com/api/mastodon"
@@ -235,6 +236,22 @@ func main() {
 		rw.Header().Add("Cache-Control", fmt.Sprintf("s-maxage=%v", *ttl))
 
 		spotify.SpotifyStatusHandler(rw, r, *spotifyClientID, *spotifyClientSecret, *spotifyRefreshToken)
+	})
+
+	mux.HandleFunc("/api/blog", func(rw http.ResponseWriter, r *http.Request) {
+		defer func() {
+			if err := recover(); err != nil {
+				log.Println("Error occured in Blog API:", err)
+
+				http.Error(rw, "Error occured in Blog API", http.StatusInternalServerError)
+
+				return
+			}
+		}()
+
+		rw.Header().Add("Cache-Control", fmt.Sprintf("s-maxage=%v", *ttl))
+
+		blog.BlogFeedHandler(rw, r, "")
 	})
 
 	log.Println("API listening on", *laddr)
