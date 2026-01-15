@@ -17,6 +17,7 @@
 
   <a target="_blank" class="pf-v6-u-mt-xs pf-v6-u-mb-sm streamstatus__stream_url"
     ><i class="fas fa-play pf-v6-u-ml-xs pf-v6-u-mr-xs"></i
+    ><span class="streamstatus__stream__label">Latest video: </span
     ><strong class="streamstatus__stream__name"></strong
   ></a>
   <span class="pf-v6-c-badge streamstatus__stream__islive"></span>
@@ -34,9 +35,6 @@
   const streamStatus = await (
     await fetch(`${base}api/${platform}?username=${username}`)
   ).json();
-
-  const truncate = (str, n) =>
-    str.length > n ? str.substr(0, n - 1) + "&hellip;" : str;
 
   // Channel
   document.querySelector("#{{ .ID }} .streamstatus__channel__url").href =
@@ -58,5 +56,9 @@
   indicator.classList.add(streamStatus.streamIsLive ? "pf-m-unread" : "pf-v6-x-u-offline")
 
   document.querySelector("#{{ .ID }} .streamstatus__stream__name").innerText =
-    truncate(streamStatus.streamName, 14) || "Stream";
+    streamStatus.streamName || "Stream";
+
+  // Update label based on live status
+  document.querySelector("#{{ .ID }} .streamstatus__stream__label").innerText =
+    streamStatus.streamIsLive ? "Live now: " : "Latest video: ";
 </script>
