@@ -1,6 +1,7 @@
 <div
   class="pf-v6-u-font-size-sm pf-v6-l-flex pf-m-column pf-m-space-items-xs pf-m-align-items-center pf-m-justify-content-center pf-v6-u-py-xs"
   id="{{ .ID }}"
+  style="display: none;"
 >
   <div class="pf-v6-l-flex pf-m-space-items-sm pf-m-align-items-center">
     <a target="_blank" class="pf-v6-l-flex streamstatus__channel__url">
@@ -31,34 +32,93 @@
   const base = "{{ .BaseURL }}"
   const platform = "{{ .Platform }}"
   const username = "{{ .Username }}";
+  const containerId = "{{ .ID }}";
+  const container = document.getElementById(containerId);
+  const cacheKey = `streamstatus_${platform}_${username}`;
+  const errorCacheKey = `${cacheKey}_error`;
+  const cacheTTL = 15 * 60 * 1000; // 15 minutes
 
-  const streamStatus = await (
-    await fetch(`${base}api/${platform}?username=${username}`)
-  ).json();
+  // Check if we recently had an error - don't retry for 15 min
+  const cachedError = localStorage.getItem(errorCacheKey);
+  if (cachedError) {
+    const errorTime = parseInt(cachedError, 10);
+    if (Date.now() - errorTime < cacheTTL) {
+      console.log(`${platform} API recently failed, skipping retry`);
+      // Keep container hidden
+      return;
+    }
+  }
 
-  // Channel
-  document.querySelector("#{{ .ID }} .streamstatus__channel__url").href =
-    streamStatus.channelURL;
+  // Check for cached successful response
+  const cached = localStorage.getItem(cacheKey);
+  if (cached) {
+    try {
+      const { data, timestamp } = JSON.parse(cached);
+      if (Date.now() - timestamp < cacheTTL) {
+        renderStatus(data);
+        return;
+      }
+    } catch (e) {
+      localStorage.removeItem(cacheKey);
+    }
+  }
 
-  document.querySelector("#{{ .ID }} .streamstatus__channel__badge").src =
-    "https://img.shields.io/badge/%40"+streamStatus.channelName+"-"+streamStatus.channelSubscriberCount+"%20"+(platform == "youtube" ? "subscribers" : "followers")+"-brightgreen?logo="+platform+"&style=social";
+  try {
+    const response = await fetch(`${base}api/${platform}?username=${username}`);
+    if (!response.ok) {
+      throw new Error(`API returned ${response.status}`);
+    }
+    const streamStatus = await response.json();
 
-  // Stream
-  document.querySelector("#{{ .ID }} .streamstatus__stream_url").href =
-    streamStatus.streamURL;
+    // Check for empty/error response
+    if (!streamStatus.channelURL && !streamStatus.channelName) {
+      throw new Error('Invalid response data');
+    }
 
-  const indicator = document.querySelector("#{{ .ID }} .streamstatus__stream__islive");
+    // Cache successful response
+    localStorage.setItem(cacheKey, JSON.stringify({
+      data: streamStatus,
+      timestamp: Date.now()
+    }));
+    // Clear any error cache
+    localStorage.removeItem(errorCacheKey);
 
-  indicator.innerText =
-    streamStatus.streamIsLive ? "Live (" + streamStatus.streamViewerCount + " viewers)" : "Offline";
+    renderStatus(streamStatus);
+  } catch (error) {
+    console.error(`${platform} status error:`, error);
+    // Cache the error time to prevent retries
+    localStorage.setItem(errorCacheKey, Date.now().toString());
+    // Keep container hidden
+  }
 
-  indicator.classList.add(streamStatus.streamIsLive ? "pf-m-unread" : "pf-m-read")
-  indicator.classList.add(streamStatus.streamIsLive ? "pf-m-unread" : "pf-v6-x-u-offline")
+  function renderStatus(streamStatus) {
+    // Channel
+    document.querySelector(`#${containerId} .streamstatus__channel__url`).href =
+      streamStatus.channelURL;
 
-  document.querySelector("#{{ .ID }} .streamstatus__stream__name").innerText =
-    streamStatus.streamName || "Stream";
+    document.querySelector(`#${containerId} .streamstatus__channel__badge`).src =
+      "https://img.shields.io/badge/%40"+streamStatus.channelName+"-"+streamStatus.channelSubscriberCount+"%20"+(platform == "youtube" ? "subscribers" : "followers")+"-brightgreen?logo="+platform+"&style=social";
 
-  // Update label based on live status
-  document.querySelector("#{{ .ID }} .streamstatus__stream__label").innerText =
-    streamStatus.streamIsLive ? "Live now: " : "Latest video: ";
+    // Stream
+    document.querySelector(`#${containerId} .streamstatus__stream_url`).href =
+      streamStatus.streamURL;
+
+    const indicator = document.querySelector(`#${containerId} .streamstatus__stream__islive`);
+
+    indicator.innerText =
+      streamStatus.streamIsLive ? "Live (" + streamStatus.streamViewerCount + " viewers)" : "Offline";
+
+    indicator.classList.add(streamStatus.streamIsLive ? "pf-m-unread" : "pf-m-read")
+    indicator.classList.add(streamStatus.streamIsLive ? "pf-m-unread" : "pf-v6-x-u-offline")
+
+    document.querySelector(`#${containerId} .streamstatus__stream__name`).innerText =
+      streamStatus.streamName || "Stream";
+
+    // Update label based on live status
+    document.querySelector(`#${containerId} .streamstatus__stream__label`).innerText =
+      streamStatus.streamIsLive ? "Live now: " : "Latest video: ";
+
+    // Show the container only on success
+    container.style.display = "";
+  }
 </script>
