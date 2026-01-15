@@ -1,6 +1,6 @@
 baseURL: /
 languageCode: en-us
-title: Felicitas Pojtinger
+title: Ricardo Mendes
 relativeURLs: true
 ignoreFiles:
   - "data/index\\.go$"

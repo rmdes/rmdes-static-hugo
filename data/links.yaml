@@ -1,38 +1,29 @@
 me:
-  - https://mastodon.social/@pojntfx
+  - https://mstdn.social/@rmdes
 navbar:
-  - title: CV
-    icon: fas fa-book
-    link: /doc/cv.pdf
+  - title: Blog
+    icon: fas fa-rss
+    link: https://blog.rmendes.net
     newTab: true
 cta:
   title: Follow on Mastodon
   icon: fas fa-plus-circle
-  link: https://mastodon.social/@pojntfx
+  link: https://mstdn.social/@rmdes
 socials:
   - title: GitHub
-    link: https://github.com/pojntfx/
-  - title: Codeberg
-    link: https://codeberg.org/pojntfx
+    link: https://github.com/rmdes
   - separator: true
   - title: Bluesky
-    link: https://bsky.app/profile/felicitas.pojtinger.com
-  - title: Twitter
-    link: https://twitter.com/pojntfx
-  - title: Instagram
-    link: https://www.instagram.com/pojntfx/
-  - title: LinkedIn
-    link: https://www.linkedin.com/in/pojntfx/
+    link: https://bsky.app/profile/rmendes.net
+  - title: Mastodon
+    link: https://mstdn.social/@rmdes
   - separator: true
-  - title: Matrix
-    link: https://matrix.to/#/@pojntfx:matrix.org
-  - title: Signal
-    link: https://signal.me/#p/+4915233842326
-  - title: Discord
-    link: https://discord.com/users/pojntfx#0001
+  - title: YouTube
+    link: https://www.youtube.com/@rmdes
+  - title: Spotify
+    link: https://open.spotify.com/user/21gkc644ixi3ce3qyqqkvvmy
   - separator: true
-  - title: Phone
-    link: tel:+4915233842326
-    unsafe: true
+  - title: Blog
+    link: https://blog.rmendes.net
   - title: Mail
-    link: mailto:felicitas@pojtinger.com
+    link: mailto:rick@rmendes.net

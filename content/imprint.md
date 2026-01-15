@@ -1,47 +1,14 @@
 ---
-title: "Imprint/Impressum/Mentions légales"
-date: 2024-12-12T00:30:00+01:00
+title: "Imprint"
+date: 2024-01-01
 draft: false
 ---
 
-## English
+## Contact
 
-### Information According to §5 TMG
+Ricardo Mendes
+Email: [rick@rmendes.net](mailto:rick@rmendes.net)
 
-Felicitas Pojtinger<br/>
-Hirschkopfweg 8<br/>
-72270 Baiersbronn<br/>
-Germany
+## Website
 
-### Contact
-
-Phone: +49 152 33842326<br/>
-Email: [felicitas@pojtinger.com](mailto:felicitas@pojtinger.com)
-
-## Deutsch
-
-### Angaben gemäß §5 TMG
-
-Felicitas Pojtinger<br/>
-Hirschkopfweg 8<br/>
-72270 Baiersbronn<br/>
-Deutschland
-
-### Kontakt
-
-Telefon: +49 152 33842326<br/>
-E-Mail: [felicitas@pojtinger.com](mailto:felicitas@pojtinger.com)
-
-## Français
-
-### Informations conformément à l'article 5 de la TMG
-
-Felicitas Pojtinger<br/>
-Hirschkopfweg 8<br/>
-72270 Baiersbronn<br/>
-Allemagne
-
-### Contact
-
-Téléphone: +49 152 33842326<br/>
-E-mail: [felicitas@pojtinger.com](mailto:felicitas@pojtinger.com)
+Source code: [github.com/rmdes/rmendes.net](https://github.com/rmdes/rmendes.net)
