@@ -31,6 +31,8 @@
       content="© {{ now.Year }} {{ .Site.Data.site.author }}"
     />
 
+    {{ partial "opengraph" . }}
+
     {{ $opts := dict
       "transpiler" "dartsass"
       "includePaths" (slice "node_modules")

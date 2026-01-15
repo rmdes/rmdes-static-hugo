@@ -11,3 +11,14 @@ keywords:
   - Automation
   - Open Source
 source: https://github.com/rmdes/rmdes-static-hugo
+
+# OpenGraph configuration
+opengraph:
+  # Canonical base URL (used for og:url and og:image absolute URLs)
+  baseUrl: https://rmendes.net
+  # Default OG image for pages without a specific image
+  image: https://github.com/rmdes.png
+  # Twitter handle (without @)
+  twitter: rmdes
+  # Site type: "website" for homepage, articles use "article"
+  locale: en_US
