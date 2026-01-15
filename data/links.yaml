@@ -1,6 +1,10 @@
 me:
   - https://mstdn.social/@rmdes
 navbar:
+  - title: CV
+    icon: fas fa-file-alt
+    link: /doc/cv.pdf
+    newTab: true
   - title: Blog
     icon: fas fa-rss
     link: https://blog.rmendes.net
