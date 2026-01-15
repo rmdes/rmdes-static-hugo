@@ -3,15 +3,31 @@
     class="pf-v6-c-page__header pf-v6-c-page__header--index pf-v6-c-page__header--max-width pf-v6-c-page__header--overlay pf-v6-c-page__header--overlay--index pf-v6-x-u-white-space-nowrap pf-v6-x-u-overflow-x-auto"
   >
     <div class="pf-v6-c-page__header__content--max-width">
-      {{ if .Site.Data.integrations.spotify.enabled }}
-        {{ partial "spotifystatus" (dict "ID" "spotifystatus" "Username" .Site.Data.integrations.spotify.username "BaseURL" .Site.BaseURL ) }}
-      {{ end }}
+      {{/* Left side: CV link and Spotify */}}
+      <div class="pf-v6-u-display-flex pf-v6-u-align-items-center">
+        {{ range .Site.Data.links.navbar_left }}
+          <a
+            href="{{ .link }}"
+            {{ if .newTab }}target="_blank"{{ end }}
+            rel="noopener"
+            class="pf-v6-c-button pf-v6-c-button--header pf-v6-x-u-text-shadow-sm pf-v6-x-u-text--freestanding pf-m-plain pf-v6-u-mr-sm"
+          >
+            <span
+              class="pf-v6-c-button__icon pf-m-start pf-v6-x-u-icon--freestanding"
+            >
+              <i class="{{ .icon }}" aria-hidden="true"></i> </span
+            >{{ .title }}</a
+          >
+        {{ end }}
 
+        {{ if .Site.Data.integrations.spotify.enabled }}
+          {{ partial "spotifystatus" (dict "ID" "spotifystatus" "Username" .Site.Data.integrations.spotify.username "BaseURL" .Site.BaseURL ) }}
+        {{ end }}
+      </div>
 
+      {{/* Right side: navbar links and stream status */}}
       <div
-        class="pf-v6-u-display-flex pf-v6-u-align-items-center pf-v6-u-pl-sm pf-v6-u-mr-lg pf-v6-u-mr-0-on-xl {{ if not .Site.Data.integrations.spotify.enabled }}
-          pf-v6-u-ml-auto
-        {{ end }}"
+        class="pf-v6-u-display-flex pf-v6-u-align-items-center pf-v6-u-pl-sm pf-v6-u-mr-lg pf-v6-u-mr-0-on-xl pf-v6-u-ml-auto"
       >
         {{ range .Site.Data.links.navbar }}
           <a
