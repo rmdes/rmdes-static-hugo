@@ -5,3 +5,5 @@ resources
 node_modules
 out
 static/assets
+.env
+.env.*
