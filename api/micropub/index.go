@@ -1,6 +1,7 @@
 package micropub
 
 import (
+	"bufio"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -10,6 +11,8 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -57,7 +60,7 @@ func MicropubHandler(rw http.ResponseWriter, r *http.Request, contentDir, baseUR
 
 	// Handle GET requests for configuration queries
 	if r.Method == http.MethodGet {
-		handleQuery(rw, r, baseURL)
+		handleQuery(rw, r, contentDir, baseURL)
 		return
 	}
 
@@ -344,7 +347,7 @@ func appendSyndicationToFrontmatter(filePath string, syndicationURLs map[string]
 }
 
 // handleQuery handles Micropub configuration queries
-func handleQuery(rw http.ResponseWriter, r *http.Request, baseURL string) {
+func handleQuery(rw http.ResponseWriter, r *http.Request, contentDir, baseURL string) {
 	q := r.URL.Query().Get("q")
 
 	switch q {
@@ -395,6 +398,22 @@ func handleQuery(rw http.ResponseWriter, r *http.Request, baseURL string) {
 		rw.WriteHeader(http.StatusNotImplemented)
 		json.NewEncoder(rw).Encode(map[string]string{
 			"error": "not_implemented",
+		})
+
+	case "category":
+		// Return all unique categories/tags from existing posts
+		categories := extractAllCategories(contentDir)
+
+		// Apply limit if specified
+		limit := r.URL.Query().Get("limit")
+		if limit != "" {
+			if l, err := strconv.Atoi(limit); err == nil && l > 0 && l < len(categories) {
+				categories = categories[:l]
+			}
+		}
+
+		json.NewEncoder(rw).Encode(map[string][]string{
+			"categories": categories,
 		})
 
 	default:
@@ -692,4 +711,75 @@ func extractContent(req MicropubRequest) string {
 	}
 
 	return ""
+}
+
+// extractAllCategories scans all content files and returns unique categories/tags
+func extractAllCategories(contentDir string) []string {
+	categorySet := make(map[string]bool)
+	tagPattern := regexp.MustCompile(`tags:\s*\[([^\]]*)\]`)
+
+	// Walk through content directories
+	filepath.Walk(contentDir, func(path string, info os.FileInfo, err error) error {
+		if err != nil || info.IsDir() {
+			return nil
+		}
+
+		// Only process markdown files
+		if !strings.HasSuffix(path, ".md") {
+			return nil
+		}
+
+		file, err := os.Open(path)
+		if err != nil {
+			return nil
+		}
+		defer file.Close()
+
+		// Read first 50 lines (frontmatter should be near top)
+		scanner := bufio.NewScanner(file)
+		lineCount := 0
+		inFrontmatter := false
+
+		for scanner.Scan() && lineCount < 50 {
+			line := scanner.Text()
+			lineCount++
+
+			if line == "---" {
+				if !inFrontmatter {
+					inFrontmatter = true
+					continue
+				} else {
+					break // End of frontmatter
+				}
+			}
+
+			if !inFrontmatter {
+				continue
+			}
+
+			// Look for tags: ["tag1", "tag2"] or tags: [tag1, tag2]
+			if matches := tagPattern.FindStringSubmatch(line); len(matches) > 1 {
+				tagsStr := matches[1]
+				// Parse tags - handle both quoted and unquoted
+				for _, tag := range strings.Split(tagsStr, ",") {
+					tag = strings.TrimSpace(tag)
+					tag = strings.Trim(tag, `"'`)
+					if tag != "" {
+						categorySet[tag] = true
+					}
+				}
+			}
+		}
+
+		return nil
+	})
+
+	// Convert to sorted slice
+	categories := make([]string, 0, len(categorySet))
+	for cat := range categorySet {
+		categories = append(categories, cat)
+	}
+	sort.Strings(categories)
+
+	return categories
 }

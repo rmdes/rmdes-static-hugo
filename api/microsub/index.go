@@ -1,6 +1,8 @@
 package microsub
 
 import (
+	"crypto/sha256"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -9,6 +11,7 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -18,8 +21,9 @@ import (
 
 // Channel represents a Microsub channel (category/folder)
 type Channel struct {
-	UID  string `json:"uid"`
-	Name string `json:"name"`
+	UID    string `json:"uid"`
+	Name   string `json:"name"`
+	Unread *int   `json:"unread,omitempty"` // nil = unknown, 0+ = count
 }
 
 // Feed represents a subscribed feed
@@ -56,11 +60,20 @@ type Author struct {
 	Photo string `json:"photo,omitempty"`
 }
 
+// MutedUser represents a muted user
+type MutedUser struct {
+	URL   string `json:"url"`
+	Name  string `json:"name,omitempty"`
+	Photo string `json:"photo,omitempty"`
+}
+
 // MicrosubData stores all Microsub state
 type MicrosubData struct {
-	Channels      []Channel         `json:"channels"`
-	Subscriptions map[string][]Feed `json:"subscriptions"` // channel UID -> feeds
-	ReadItems     map[string]bool   `json:"read_items"`    // item UID -> read status
+	Channels      []Channel            `json:"channels"`
+	Subscriptions map[string][]Feed    `json:"subscriptions"`  // channel UID -> feeds
+	ReadItems     map[string]bool      `json:"read_items"`     // item UID -> read status
+	MutedUsers    map[string][]MutedUser `json:"muted_users"`  // channel UID -> muted users
+	BlockedUsers  map[string][]MutedUser `json:"blocked_users"` // channel UID -> blocked users
 }
 
 var (
@@ -92,6 +105,8 @@ func loadData(cacheDir string) (*MicrosubData, error) {
 				},
 				Subscriptions: make(map[string][]Feed),
 				ReadItems:     make(map[string]bool),
+				MutedUsers:    make(map[string][]MutedUser),
+				BlockedUsers:  make(map[string][]MutedUser),
 			}
 			return data, saveDataLocked()
 		}
@@ -108,6 +123,12 @@ func loadData(cacheDir string) (*MicrosubData, error) {
 	}
 	if data.ReadItems == nil {
 		data.ReadItems = make(map[string]bool)
+	}
+	if data.MutedUsers == nil {
+		data.MutedUsers = make(map[string][]MutedUser)
+	}
+	if data.BlockedUsers == nil {
+		data.BlockedUsers = make(map[string][]MutedUser)
 	}
 
 	return data, nil
@@ -175,6 +196,10 @@ func handleGet(rw http.ResponseWriter, r *http.Request, tokenResp *indieauth.Tok
 		handleGetTimeline(rw, r)
 	case "follow":
 		handleGetFollowing(rw, r)
+	case "mute":
+		handleGetMuted(rw, r)
+	case "block":
+		handleGetBlocked(rw, r)
 	default:
 		// Default: return channels
 		handleGetChannels(rw, r)
@@ -221,6 +246,30 @@ func handlePost(rw http.ResponseWriter, r *http.Request, tokenResp *indieauth.To
 			return
 		}
 		handleSubscribe(rw, r)
+	case "mute":
+		if !indieauth.HasScope(tokenResp, "mute") && !indieauth.HasScope(tokenResp, "channels") {
+			http.Error(rw, `{"error": "insufficient_scope"}`, http.StatusForbidden)
+			return
+		}
+		handleMute(rw, r)
+	case "unmute":
+		if !indieauth.HasScope(tokenResp, "mute") && !indieauth.HasScope(tokenResp, "channels") {
+			http.Error(rw, `{"error": "insufficient_scope"}`, http.StatusForbidden)
+			return
+		}
+		handleUnmute(rw, r)
+	case "block":
+		if !indieauth.HasScope(tokenResp, "block") && !indieauth.HasScope(tokenResp, "channels") {
+			http.Error(rw, `{"error": "insufficient_scope"}`, http.StatusForbidden)
+			return
+		}
+		handleBlock(rw, r)
+	case "unblock":
+		if !indieauth.HasScope(tokenResp, "block") && !indieauth.HasScope(tokenResp, "channels") {
+			http.Error(rw, `{"error": "insufficient_scope"}`, http.StatusForbidden)
+			return
+		}
+		handleUnblock(rw, r)
 	default:
 		http.Error(rw, `{"error": "invalid_action"}`, http.StatusBadRequest)
 	}
@@ -228,10 +277,42 @@ func handlePost(rw http.ResponseWriter, r *http.Request, tokenResp *indieauth.To
 
 func handleGetChannels(rw http.ResponseWriter, r *http.Request) {
 	dataLock.RLock()
-	defer dataLock.RUnlock()
+	channels := make([]Channel, len(data.Channels))
+	copy(channels, data.Channels)
+	subscriptions := data.Subscriptions
+	readItems := data.ReadItems
+	dataLock.RUnlock()
+
+	// Calculate unread counts for each channel
+	for i := range channels {
+		feeds := subscriptions[channels[i].UID]
+		if len(feeds) == 0 {
+			zero := 0
+			channels[i].Unread = &zero
+			continue
+		}
+
+		unreadCount := 0
+		for _, feed := range feeds {
+			items, err := fetchFeed(feed.URL)
+			if err != nil {
+				continue
+			}
+			for _, item := range items {
+				uid := item.UID
+				if uid == "" {
+					uid = generateItemID(&item)
+				}
+				if !readItems[uid] {
+					unreadCount++
+				}
+			}
+		}
+		channels[i].Unread = &unreadCount
+	}
 
 	response := map[string]interface{}{
-		"channels": data.Channels,
+		"channels": channels,
 	}
 	json.NewEncoder(rw).Encode(response)
 }
@@ -263,8 +344,37 @@ func handlePostChannels(rw http.ResponseWriter, r *http.Request) {
 		json.NewEncoder(rw).Encode(map[string]string{"result": "deleted"})
 
 	case "order":
-		// Reorder channels - not implemented
-		http.Error(rw, `{"error": "not_implemented"}`, http.StatusNotImplemented)
+		// Reorder channels based on provided order
+		channelOrder := r.Form["channels[]"]
+		if len(channelOrder) == 0 {
+			channelOrder = r.Form["channels"]
+		}
+		if len(channelOrder) == 0 {
+			http.Error(rw, `{"error": "channels_required"}`, http.StatusBadRequest)
+			return
+		}
+
+		// Build new channel list in specified order
+		channelMap := make(map[string]Channel)
+		for _, ch := range data.Channels {
+			channelMap[ch.UID] = ch
+		}
+
+		newChannels := make([]Channel, 0, len(channelOrder))
+		for _, uid := range channelOrder {
+			if ch, exists := channelMap[uid]; exists {
+				newChannels = append(newChannels, ch)
+				delete(channelMap, uid)
+			}
+		}
+		// Append any channels not in the order list
+		for _, ch := range channelMap {
+			newChannels = append(newChannels, ch)
+		}
+
+		data.Channels = newChannels
+		saveDataLocked()
+		json.NewEncoder(rw).Encode(map[string]string{"result": "ok"})
 
 	default:
 		if uid != "" {
@@ -784,10 +894,32 @@ func handleGetTimeline(rw http.ResponseWriter, r *http.Request) {
 		channel = "default"
 	}
 
+	// Parse paging parameters
+	beforeCursor := r.URL.Query().Get("before")
+	afterCursor := r.URL.Query().Get("after")
+	limitStr := r.URL.Query().Get("limit")
+	limit := 20 // default
+	if limitStr != "" {
+		if l, err := strconv.Atoi(limitStr); err == nil && l > 0 && l <= 100 {
+			limit = l
+		}
+	}
+
 	dataLock.RLock()
 	feeds := data.Subscriptions[channel]
 	readItems := data.ReadItems
+	mutedUsers := data.MutedUsers[channel]
+	blockedUsers := data.BlockedUsers[channel]
 	dataLock.RUnlock()
+
+	// Build set of muted/blocked URLs for filtering
+	filteredURLs := make(map[string]bool)
+	for _, u := range mutedUsers {
+		filteredURLs[u.URL] = true
+	}
+	for _, u := range blockedUsers {
+		filteredURLs[u.URL] = true
+	}
 
 	// Fetch all feeds and aggregate items
 	var allItems []Item
@@ -800,27 +932,113 @@ func handleGetTimeline(rw http.ResponseWriter, r *http.Request) {
 		allItems = append(allItems, items...)
 	}
 
+	// Ensure each item has a unique _id
+	for i := range allItems {
+		if allItems[i].UID == "" {
+			allItems[i].UID = generateItemID(&allItems[i])
+		}
+	}
+
+	// Filter out muted/blocked authors
+	if len(filteredURLs) > 0 {
+		var filtered []Item
+		for _, item := range allItems {
+			if item.Author != nil && filteredURLs[item.Author.URL] {
+				continue
+			}
+			filtered = append(filtered, item)
+		}
+		allItems = filtered
+	}
+
 	// Sort by published date (newest first)
 	sort.Slice(allItems, func(i, j int) bool {
 		return allItems[i].Published > allItems[j].Published
 	})
 
-	// Mark read status
-	for i := range allItems {
-		if allItems[i].UID != "" {
-			allItems[i].IsRead = readItems[allItems[i].UID]
+	// Apply cursor-based paging
+	// "before" means items published before (older than) this cursor - for next page
+	// "after" means items published after (newer than) this cursor - for previous page
+	var startIdx, endIdx int
+	if afterCursor != "" {
+		// Find items newer than the cursor (going back towards top)
+		for i, item := range allItems {
+			if item.UID == afterCursor || item.Published == afterCursor {
+				startIdx = 0
+				endIdx = i
+				if endIdx > limit {
+					startIdx = endIdx - limit
+				}
+				break
+			}
+		}
+	} else if beforeCursor != "" {
+		// Find items older than the cursor (going forward/down)
+		for i, item := range allItems {
+			if item.UID == beforeCursor || item.Published == beforeCursor {
+				startIdx = i + 1
+				endIdx = startIdx + limit
+				if endIdx > len(allItems) {
+					endIdx = len(allItems)
+				}
+				break
+			}
+		}
+	} else {
+		// No cursor, start from beginning
+		startIdx = 0
+		endIdx = limit
+		if endIdx > len(allItems) {
+			endIdx = len(allItems)
 		}
 	}
 
-	// Limit to 50 items
-	if len(allItems) > 50 {
-		allItems = allItems[:50]
+	// Slice to the requested page
+	var pageItems []Item
+	if startIdx < len(allItems) && startIdx < endIdx {
+		pageItems = allItems[startIdx:endIdx]
 	}
 
-	response := map[string]interface{}{
-		"items": allItems,
+	// Mark read status
+	for i := range pageItems {
+		if pageItems[i].UID != "" {
+			pageItems[i].IsRead = readItems[pageItems[i].UID]
+		}
 	}
+
+	// Build response with paging info
+	response := map[string]interface{}{
+		"items": pageItems,
+	}
+
+	// Add paging cursors if there are more items
+	paging := make(map[string]string)
+	if endIdx < len(allItems) && len(pageItems) > 0 {
+		// There are more older items - use last item as "before" cursor
+		paging["before"] = pageItems[len(pageItems)-1].UID
+	}
+	if startIdx > 0 && len(pageItems) > 0 {
+		// There are newer items - use first item as "after" cursor
+		paging["after"] = pageItems[0].UID
+	}
+	if len(paging) > 0 {
+		response["paging"] = paging
+	}
+
 	json.NewEncoder(rw).Encode(response)
+}
+
+// generateItemID creates a unique ID for an item based on its URL and published date
+func generateItemID(item *Item) string {
+	source := item.URL
+	if source == "" {
+		source = item.Published + item.Name
+	}
+	if item.Author != nil {
+		source += item.Author.URL
+	}
+	hash := sha256.Sum256([]byte(source))
+	return base64.RawURLEncoding.EncodeToString(hash[:12])
 }
 
 func handleMarkRead(rw http.ResponseWriter, r *http.Request) {
@@ -1133,4 +1351,192 @@ func extractXMLAttr(content, tag, attr string) string {
 	}
 
 	return tagContent[valueStart : valueStart+valueEnd]
+}
+
+// handleGetMuted returns the list of muted users for a channel
+func handleGetMuted(rw http.ResponseWriter, r *http.Request) {
+	channel := r.URL.Query().Get("channel")
+	if channel == "" {
+		channel = "global"
+	}
+
+	dataLock.RLock()
+	defer dataLock.RUnlock()
+
+	muted := data.MutedUsers[channel]
+	if muted == nil {
+		muted = []MutedUser{}
+	}
+
+	// Convert to JF2 card format
+	items := make([]map[string]interface{}, len(muted))
+	for i, user := range muted {
+		items[i] = map[string]interface{}{
+			"type": "card",
+			"url":  user.URL,
+		}
+		if user.Name != "" {
+			items[i]["name"] = user.Name
+		}
+		if user.Photo != "" {
+			items[i]["photo"] = user.Photo
+		}
+	}
+
+	json.NewEncoder(rw).Encode(map[string]interface{}{
+		"items": items,
+	})
+}
+
+// handleMute mutes a user in a channel
+func handleMute(rw http.ResponseWriter, r *http.Request) {
+	url := r.FormValue("url")
+	channel := r.FormValue("channel")
+	if channel == "" {
+		channel = "global"
+	}
+
+	if url == "" {
+		http.Error(rw, `{"error": "url_required"}`, http.StatusBadRequest)
+		return
+	}
+
+	dataLock.Lock()
+	defer dataLock.Unlock()
+
+	// Check if already muted
+	for _, user := range data.MutedUsers[channel] {
+		if user.URL == url {
+			json.NewEncoder(rw).Encode(map[string]string{"result": "ok"})
+			return
+		}
+	}
+
+	// Add to muted list
+	data.MutedUsers[channel] = append(data.MutedUsers[channel], MutedUser{URL: url})
+	saveDataLocked()
+
+	json.NewEncoder(rw).Encode(map[string]string{"result": "ok"})
+}
+
+// handleUnmute removes a user from the muted list
+func handleUnmute(rw http.ResponseWriter, r *http.Request) {
+	url := r.FormValue("url")
+	channel := r.FormValue("channel")
+	if channel == "" {
+		channel = "global"
+	}
+
+	if url == "" {
+		http.Error(rw, `{"error": "url_required"}`, http.StatusBadRequest)
+		return
+	}
+
+	dataLock.Lock()
+	defer dataLock.Unlock()
+
+	newMuted := []MutedUser{}
+	for _, user := range data.MutedUsers[channel] {
+		if user.URL != url {
+			newMuted = append(newMuted, user)
+		}
+	}
+	data.MutedUsers[channel] = newMuted
+	saveDataLocked()
+
+	json.NewEncoder(rw).Encode(map[string]string{"result": "ok"})
+}
+
+// handleGetBlocked returns the list of blocked users for a channel
+func handleGetBlocked(rw http.ResponseWriter, r *http.Request) {
+	channel := r.URL.Query().Get("channel")
+	if channel == "" {
+		channel = "global"
+	}
+
+	dataLock.RLock()
+	defer dataLock.RUnlock()
+
+	blocked := data.BlockedUsers[channel]
+	if blocked == nil {
+		blocked = []MutedUser{}
+	}
+
+	// Convert to JF2 card format
+	items := make([]map[string]interface{}, len(blocked))
+	for i, user := range blocked {
+		items[i] = map[string]interface{}{
+			"type": "card",
+			"url":  user.URL,
+		}
+		if user.Name != "" {
+			items[i]["name"] = user.Name
+		}
+		if user.Photo != "" {
+			items[i]["photo"] = user.Photo
+		}
+	}
+
+	json.NewEncoder(rw).Encode(map[string]interface{}{
+		"items": items,
+	})
+}
+
+// handleBlock blocks a user in a channel
+func handleBlock(rw http.ResponseWriter, r *http.Request) {
+	url := r.FormValue("url")
+	channel := r.FormValue("channel")
+	if channel == "" {
+		channel = "global"
+	}
+
+	if url == "" {
+		http.Error(rw, `{"error": "url_required"}`, http.StatusBadRequest)
+		return
+	}
+
+	dataLock.Lock()
+	defer dataLock.Unlock()
+
+	// Check if already blocked
+	for _, user := range data.BlockedUsers[channel] {
+		if user.URL == url {
+			json.NewEncoder(rw).Encode(map[string]string{"result": "ok"})
+			return
+		}
+	}
+
+	// Add to blocked list
+	data.BlockedUsers[channel] = append(data.BlockedUsers[channel], MutedUser{URL: url})
+	saveDataLocked()
+
+	json.NewEncoder(rw).Encode(map[string]string{"result": "ok"})
+}
+
+// handleUnblock removes a user from the blocked list
+func handleUnblock(rw http.ResponseWriter, r *http.Request) {
+	url := r.FormValue("url")
+	channel := r.FormValue("channel")
+	if channel == "" {
+		channel = "global"
+	}
+
+	if url == "" {
+		http.Error(rw, `{"error": "url_required"}`, http.StatusBadRequest)
+		return
+	}
+
+	dataLock.Lock()
+	defer dataLock.Unlock()
+
+	newBlocked := []MutedUser{}
+	for _, user := range data.BlockedUsers[channel] {
+		if user.URL != url {
+			newBlocked = append(newBlocked, user)
+		}
+	}
+	data.BlockedUsers[channel] = newBlocked
+	saveDataLocked()
+
+	json.NewEncoder(rw).Encode(map[string]string{"result": "ok"})
 }
