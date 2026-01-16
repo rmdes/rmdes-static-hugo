@@ -4,6 +4,8 @@ go 1.25
 
 require (
 	codeberg.org/mvdkleijn/forgejo-sdk/forgejo v1.2.0
+	github.com/bluesky-social/indigo v0.0.0-20260114211028-207c9d49d0de
+	github.com/fsnotify/fsnotify v1.9.0
 	github.com/google/go-github/v42 v42.0.0
 	github.com/google/go-github/v68 v68.0.0
 	github.com/mattn/go-mastodon v0.0.10
@@ -23,7 +25,6 @@ require (
 	github.com/42wim/httpsig v1.2.2 // indirect
 	github.com/PuerkitoBio/goquery v1.11.0 // indirect
 	github.com/andybalholm/cascadia v1.3.3 // indirect
-	github.com/bluesky-social/indigo v0.0.0-20260114211028-207c9d49d0de // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/davidmz/go-pageant v1.0.2 // indirect
 	github.com/earthboundkid/versioninfo/v2 v2.24.1 // indirect
