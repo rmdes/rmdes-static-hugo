@@ -29,69 +29,70 @@
   {{ if eq .Platform "youtube" }}YouTube{{ else }}Twitch{{ end }}
   status.</noscript
 ><script type="module">
-  const base = "{{ .BaseURL }}"
-  const platform = "{{ .Platform }}"
-  const username = "{{ .Username }}";
-  const containerId = "{{ .ID }}";
-  const container = document.getElementById(containerId);
-  const cacheKey = `streamstatus_${platform}_${username}`;
-  const errorCacheKey = `${cacheKey}_error`;
-  const cacheTTL = 15 * 60 * 1000; // 15 minutes
+  (async () => {
+    const base = "{{ .BaseURL }}"
+    const platform = "{{ .Platform }}"
+    const username = "{{ .Username }}";
+    const containerId = "{{ .ID }}";
+    const container = document.getElementById(containerId);
+    const cacheKey = `streamstatus_${platform}_${username}`;
+    const errorCacheKey = `${cacheKey}_error`;
+    const cacheTTL = 15 * 60 * 1000; // 15 minutes
 
-  // Check if we recently had an error - don't retry for 15 min
-  const cachedError = localStorage.getItem(errorCacheKey);
-  if (cachedError) {
-    const errorTime = parseInt(cachedError, 10);
-    if (Date.now() - errorTime < cacheTTL) {
-      console.log(`${platform} API recently failed, skipping retry`);
-      // Keep container hidden
-      return;
-    }
-  }
-
-  // Check for cached successful response
-  const cached = localStorage.getItem(cacheKey);
-  if (cached) {
-    try {
-      const { data, timestamp } = JSON.parse(cached);
-      if (Date.now() - timestamp < cacheTTL) {
-        renderStatus(data);
+    // Check if we recently had an error - don't retry for 15 min
+    const cachedError = localStorage.getItem(errorCacheKey);
+    if (cachedError) {
+      const errorTime = parseInt(cachedError, 10);
+      if (Date.now() - errorTime < cacheTTL) {
+        console.log(`${platform} API recently failed, skipping retry`);
+        // Keep container hidden
         return;
       }
-    } catch (e) {
-      localStorage.removeItem(cacheKey);
-    }
-  }
-
-  try {
-    const response = await fetch(`${base}api/${platform}?username=${username}`);
-    if (!response.ok) {
-      throw new Error(`API returned ${response.status}`);
-    }
-    const streamStatus = await response.json();
-
-    // Check for empty/error response
-    if (!streamStatus.channelURL && !streamStatus.channelName) {
-      throw new Error('Invalid response data');
     }
 
-    // Cache successful response
-    localStorage.setItem(cacheKey, JSON.stringify({
-      data: streamStatus,
-      timestamp: Date.now()
-    }));
-    // Clear any error cache
-    localStorage.removeItem(errorCacheKey);
+    // Check for cached successful response
+    const cached = localStorage.getItem(cacheKey);
+    if (cached) {
+      try {
+        const { data, timestamp } = JSON.parse(cached);
+        if (Date.now() - timestamp < cacheTTL) {
+          renderStatus(data);
+          return;
+        }
+      } catch (e) {
+        localStorage.removeItem(cacheKey);
+      }
+    }
 
-    renderStatus(streamStatus);
-  } catch (error) {
-    console.error(`${platform} status error:`, error);
-    // Cache the error time to prevent retries
-    localStorage.setItem(errorCacheKey, Date.now().toString());
-    // Keep container hidden
-  }
+    try {
+      const response = await fetch(`${base}api/${platform}?username=${username}`);
+      if (!response.ok) {
+        throw new Error(`API returned ${response.status}`);
+      }
+      const streamStatus = await response.json();
 
-  function renderStatus(streamStatus) {
+      // Check for empty/error response
+      if (!streamStatus.channelURL && !streamStatus.channelName) {
+        throw new Error('Invalid response data');
+      }
+
+      // Cache successful response
+      localStorage.setItem(cacheKey, JSON.stringify({
+        data: streamStatus,
+        timestamp: Date.now()
+      }));
+      // Clear any error cache
+      localStorage.removeItem(errorCacheKey);
+
+      renderStatus(streamStatus);
+    } catch (error) {
+      console.error(`${platform} status error:`, error);
+      // Cache the error time to prevent retries
+      localStorage.setItem(errorCacheKey, Date.now().toString());
+      // Keep container hidden
+    }
+
+    function renderStatus(streamStatus) {
     // Channel
     document.querySelector(`#${containerId} .streamstatus__channel__url`).href =
       streamStatus.channelURL;
@@ -118,7 +119,8 @@
     document.querySelector(`#${containerId} .streamstatus__stream__label`).innerText =
       streamStatus.streamIsLive ? "Live now: " : "Latest video: ";
 
-    // Show the container only on success
-    container.style.display = "";
-  }
+      // Show the container only on success
+      container.style.display = "";
+    }
+  })();
 </script>
