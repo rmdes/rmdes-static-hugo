@@ -6,6 +6,18 @@ navbar_left:
     link: /doc/cv.pdf
     newTab: true
 navbar:
+  - title: Articles
+    icon: fas fa-newspaper
+    link: /articles/
+  - title: Notes
+    icon: fas fa-sticky-note
+    link: /notes/
+  - title: Bookmarks
+    icon: fas fa-bookmark
+    link: /bookmarks/
+  - title: Likes
+    icon: fas fa-heart
+    link: /likes/
   - title: Blog
     icon: fas fa-rss
     link: https://blog.rmendes.net
