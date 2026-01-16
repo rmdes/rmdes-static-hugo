@@ -4,6 +4,12 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
+    {{/* Preconnect hints for external resources */}}
+    <link rel="preconnect" href="https://giscus.app" crossorigin />
+    <link rel="preconnect" href="https://webmention.io" crossorigin />
+    <link rel="preconnect" href="https://img.shields.io" crossorigin />
+    <link rel="preconnect" href="https://avatars.githubusercontent.com" crossorigin />
+
     <title>
       {{ if eq .Title .Site.Title }}
         {{ .Title }}
@@ -68,14 +74,14 @@
       "transpiler" "dartsass"
       "includePaths" (slice "node_modules")
     }}
-    {{ with resources.Get `scss/main.scss` | resources.ExecuteAsTemplate `main.scss` . | toCSS $opts | minify }}
-      <link rel="stylesheet" href="{{ .RelPermalink }}" />
+    {{ with resources.Get `scss/main.scss` | resources.ExecuteAsTemplate `main.scss` . | toCSS $opts | minify | fingerprint }}
+      <link rel="stylesheet" href="{{ .RelPermalink }}" integrity="{{ .Data.Integrity }}" crossorigin="anonymous" />
     {{ end }}
   </head>
   <body>
     {{ if .Site.Data.effects.fireworks }}
       {{ $built := resources.Get "js/fireworks.js" | js.Build (dict "minify" true "target" "es2015") | fingerprint }}
-      <script src="{{ $built.Permalink }}"></script>
+      <script src="{{ $built.RelPermalink }}" integrity="{{ $built.Data.Integrity }}" crossorigin="anonymous"></script>
 
       <fireworks-js
         style="width: 100%; height: 100%; position: fixed;"
@@ -87,7 +93,7 @@
 
     {{ if .Site.Data.effects.snowfall }}
       {{ $built := resources.Get "js/snowflakes.js" | js.Build (dict "minify" true "target" "es2015") | fingerprint }}
-      <script src="{{ $built.Permalink }}"></script>
+      <script src="{{ $built.RelPermalink }}" integrity="{{ $built.Data.Integrity }}" crossorigin="anonymous"></script>
     {{ end }}
 
     {{ if .Site.Data.effects.rainfall }}

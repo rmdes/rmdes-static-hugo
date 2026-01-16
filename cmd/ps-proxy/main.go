@@ -1,6 +1,7 @@
 package main
 
 import (
+	"compress/gzip"
 	"context"
 	"flag"
 	"io"
@@ -15,6 +16,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/andybalholm/brotli"
 	"github.com/fsnotify/fsnotify"
 )
 
@@ -24,20 +26,20 @@ const (
 
 // HugoBuilder manages Hugo builds with debouncing
 type HugoBuilder struct {
-	siteDir    string
-	publicDir  string
-	mu         sync.Mutex
-	building   bool
-	pending    bool
-	lastBuild  time.Time
-	debounce   time.Duration
+	siteDir   string
+	publicDir string
+	mu        sync.Mutex
+	building  bool
+	pending   bool
+	lastBuild time.Time
+	debounce  time.Duration
 }
 
 func NewHugoBuilder(siteDir, publicDir string) *HugoBuilder {
 	return &HugoBuilder{
 		siteDir:   siteDir,
 		publicDir: publicDir,
-		debounce:  2 * time.Second, // Wait 2 seconds after last change before rebuilding
+		debounce:  2 * time.Second,
 	}
 }
 
@@ -59,7 +61,6 @@ func (h *HugoBuilder) Build() error {
 		h.mu.Unlock()
 
 		if pending {
-			// Another build was requested while we were building
 			time.Sleep(h.debounce)
 			h.Build()
 		}
@@ -84,9 +85,106 @@ func (h *HugoBuilder) Build() error {
 }
 
 func (h *HugoBuilder) TriggerRebuild() {
-	// Debounce: wait a bit before building to batch rapid changes
 	time.AfterFunc(h.debounce, func() {
 		h.Build()
+	})
+}
+
+// compressedResponseWriter wraps http.ResponseWriter with compression
+type compressedResponseWriter struct {
+	io.Writer
+	http.ResponseWriter
+	statusCode int
+}
+
+func (w *compressedResponseWriter) WriteHeader(statusCode int) {
+	w.statusCode = statusCode
+	w.ResponseWriter.WriteHeader(statusCode)
+}
+
+func (w *compressedResponseWriter) Write(b []byte) (int, error) {
+	return w.Writer.Write(b)
+}
+
+// compressionMiddleware adds gzip/brotli compression
+func compressionMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Skip compression for already compressed formats
+		ext := strings.ToLower(filepath.Ext(r.URL.Path))
+		skipCompression := map[string]bool{
+			".png": true, ".jpg": true, ".jpeg": true, ".gif": true, ".webp": true,
+			".mp4": true, ".webm": true, ".mp3": true, ".ogg": true,
+			".woff": true, ".woff2": true, ".ttf": true,
+			".zip": true, ".gz": true, ".br": true,
+		}
+		if skipCompression[ext] {
+			next.ServeHTTP(w, r)
+			return
+		}
+
+		acceptEncoding := r.Header.Get("Accept-Encoding")
+
+		// Prefer Brotli over Gzip
+		if strings.Contains(acceptEncoding, "br") {
+			w.Header().Set("Content-Encoding", "br")
+			w.Header().Del("Content-Length")
+			br := brotli.NewWriterLevel(w, brotli.BestSpeed)
+			defer br.Close()
+			next.ServeHTTP(&compressedResponseWriter{Writer: br, ResponseWriter: w}, r)
+			return
+		}
+
+		if strings.Contains(acceptEncoding, "gzip") {
+			w.Header().Set("Content-Encoding", "gzip")
+			w.Header().Del("Content-Length")
+			gz, _ := gzip.NewWriterLevel(w, gzip.BestSpeed)
+			defer gz.Close()
+			next.ServeHTTP(&compressedResponseWriter{Writer: gz, ResponseWriter: w}, r)
+			return
+		}
+
+		next.ServeHTTP(w, r)
+	})
+}
+
+// securityHeadersMiddleware adds security headers
+func securityHeadersMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// HTTPS enforcement
+		w.Header().Set("Strict-Transport-Security", "max-age=31536000; includeSubDomains; preload")
+
+		// Prevent clickjacking
+		w.Header().Set("X-Frame-Options", "SAMEORIGIN")
+
+		// Prevent MIME type sniffing
+		w.Header().Set("X-Content-Type-Options", "nosniff")
+
+		// XSS protection (legacy browsers)
+		w.Header().Set("X-XSS-Protection", "1; mode=block")
+
+		// Referrer policy
+		w.Header().Set("Referrer-Policy", "strict-origin-when-cross-origin")
+
+		// Permissions policy (disable unnecessary APIs)
+		w.Header().Set("Permissions-Policy", "geolocation=(), microphone=(), camera=()")
+
+		// Content Security Policy - adjust as needed for your site
+		// This is a relatively permissive policy; tighten for better security
+		csp := strings.Join([]string{
+			"default-src 'self'",
+			"script-src 'self' 'unsafe-inline' https://giscus.app",
+			"style-src 'self' 'unsafe-inline'",
+			"img-src 'self' data: https: blob:",
+			"font-src 'self' data:",
+			"connect-src 'self' https://webmention.io https://giscus.app wss://giscus.app",
+			"frame-src https://giscus.app",
+			"frame-ancestors 'self'",
+			"base-uri 'self'",
+			"form-action 'self'",
+		}, "; ")
+		w.Header().Set("Content-Security-Policy", csp)
+
+		next.ServeHTTP(w, r)
 	})
 }
 
@@ -146,7 +244,7 @@ func main() {
 
 		// Watch content directory recursively
 		contentPath := filepath.Join(*siteDir, *contentDir)
-		err = filepath.Walk(contentPath, func(path string, info os.FileInfo, err error) error {
+		filepath.Walk(contentPath, func(path string, info os.FileInfo, err error) error {
 			if err != nil {
 				return err
 			}
@@ -155,9 +253,6 @@ func main() {
 			}
 			return nil
 		})
-		if err != nil {
-			log.Printf("Warning: Failed to watch content directory: %v", err)
-		}
 
 		// Also watch data, layouts, and assets directories
 		for _, dir := range []string{"data", "layouts", "assets", "static"} {
@@ -183,9 +278,7 @@ func main() {
 					if !ok {
 						return
 					}
-					// Trigger rebuild on write, create, or remove events
 					if event.Op&(fsnotify.Write|fsnotify.Create|fsnotify.Remove) != 0 {
-						// Skip temporary files and hidden files
 						if strings.HasPrefix(filepath.Base(event.Name), ".") ||
 							strings.HasSuffix(event.Name, "~") ||
 							strings.HasSuffix(event.Name, ".swp") {
@@ -193,7 +286,6 @@ func main() {
 						}
 						log.Printf("Content changed: %s", event.Name)
 
-						// If a new directory was created, watch it too
 						if event.Op&fsnotify.Create != 0 {
 							if info, err := os.Stat(event.Name); err == nil && info.IsDir() {
 								watcher.Add(event.Name)
@@ -212,7 +304,10 @@ func main() {
 		}()
 
 		log.Println("Production mode: serving static files from", filepath.Join(*siteDir, *publicDir))
-		handler = createStaticHandler(filepath.Join(*siteDir, *publicDir), *aurl, *verbose)
+		staticHandler := createStaticHandler(filepath.Join(*siteDir, *publicDir), *aurl, *verbose)
+
+		// Apply middleware: security headers -> compression -> static serving
+		handler = securityHeadersMiddleware(compressionMiddleware(staticHandler))
 	}
 
 	log.Println("Proxy listening on", *laddr)
@@ -225,22 +320,14 @@ func createProxyHandler(siteURL, apiURL string, verbose bool) http.Handler {
 		var upstream *url.URL
 
 		if strings.HasPrefix(r.URL.Path, "/api/") {
-			up, err := url.Parse(apiURL)
-			if err != nil {
-				log.Println("Could not parse API URL", err)
-			}
+			up, _ := url.Parse(apiURL)
 			upstream = up
-
 			if verbose {
 				log.Println("Proxying request to API", r.URL)
 			}
 		} else {
-			up, err := url.Parse(siteURL)
-			if err != nil {
-				log.Println("Could not parse site URL", err)
-			}
+			up, _ := url.Parse(siteURL)
 			upstream = up
-
 			if verbose {
 				log.Println("Proxying request to site", r.URL)
 			}
@@ -272,7 +359,6 @@ func createProxyHandler(siteURL, apiURL string, verbose bool) http.Handler {
 
 		if _, err := io.Copy(rw, res.Body); err != nil {
 			log.Println("Could not send result to client:", err)
-			return
 		}
 	})
 }
@@ -284,12 +370,7 @@ func createStaticHandler(publicDir, apiURL string, verbose bool) http.Handler {
 	return http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
 		// Proxy /api requests to the API server
 		if strings.HasPrefix(r.URL.Path, "/api/") {
-			upstream, err := url.Parse(apiURL)
-			if err != nil {
-				log.Println("Could not parse API URL", err)
-				http.Error(rw, err.Error(), http.StatusInternalServerError)
-				return
-			}
+			upstream, _ := url.Parse(apiURL)
 
 			if verbose {
 				log.Println("Proxying request to API", r.URL)
@@ -330,19 +411,55 @@ func createStaticHandler(publicDir, apiURL string, verbose bool) http.Handler {
 			log.Println("Serving static file", r.URL.Path)
 		}
 
-		// Add cache headers for static assets
-		if strings.HasPrefix(r.URL.Path, "/assets/") ||
-			strings.HasPrefix(r.URL.Path, "/uploads/") ||
-			strings.HasSuffix(r.URL.Path, ".css") ||
-			strings.HasSuffix(r.URL.Path, ".js") ||
-			strings.HasSuffix(r.URL.Path, ".woff2") ||
-			strings.HasSuffix(r.URL.Path, ".png") ||
-			strings.HasSuffix(r.URL.Path, ".jpg") ||
-			strings.HasSuffix(r.URL.Path, ".svg") {
-			rw.Header().Set("Cache-Control", "public, max-age=31536000, immutable")
-		} else {
+		// Cache headers based on content type
+		ext := strings.ToLower(filepath.Ext(r.URL.Path))
+		switch {
+		case ext == ".html" || ext == "":
 			// HTML pages - short cache for faster updates
 			rw.Header().Set("Cache-Control", "public, max-age=60")
+		case ext == ".css" || ext == ".js":
+			// Fingerprinted assets - long cache
+			rw.Header().Set("Cache-Control", "public, max-age=31536000, immutable")
+		case ext == ".woff" || ext == ".woff2" || ext == ".ttf":
+			// Fonts - long cache
+			rw.Header().Set("Cache-Control", "public, max-age=31536000, immutable")
+		case ext == ".png" || ext == ".jpg" || ext == ".jpeg" || ext == ".gif" || ext == ".webp" || ext == ".svg" || ext == ".ico":
+			// Images - long cache
+			rw.Header().Set("Cache-Control", "public, max-age=31536000, immutable")
+		case ext == ".xml" || ext == ".json":
+			// Feeds and data - medium cache
+			rw.Header().Set("Cache-Control", "public, max-age=3600")
+		default:
+			rw.Header().Set("Cache-Control", "public, max-age=86400")
+		}
+
+		// Add Vary header for compression
+		rw.Header().Set("Vary", "Accept-Encoding")
+
+		// Check if file exists, serve 404.html for missing files
+		requestPath := r.URL.Path
+		if requestPath == "/" {
+			requestPath = "/index.html"
+		}
+
+		// Try the exact path first
+		filePath := filepath.Join(publicDir, filepath.Clean(requestPath))
+		if _, err := os.Stat(filePath); os.IsNotExist(err) {
+			// Try adding index.html for directory-like paths
+			if !strings.Contains(filepath.Base(requestPath), ".") {
+				indexPath := filepath.Join(filePath, "index.html")
+				if _, err := os.Stat(indexPath); os.IsNotExist(err) {
+					// Serve 404 page
+					rw.WriteHeader(http.StatusNotFound)
+					http.ServeFile(rw, r, filepath.Join(publicDir, "404.html"))
+					return
+				}
+			} else {
+				// File with extension doesn't exist
+				rw.WriteHeader(http.StatusNotFound)
+				http.ServeFile(rw, r, filepath.Join(publicDir, "404.html"))
+				return
+			}
 		}
 
 		fileServer.ServeHTTP(rw, r)
