@@ -3,6 +3,7 @@ package micropub
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"net/url"
 	"os"
@@ -12,6 +13,7 @@ import (
 	"time"
 
 	"github.com/pojntfx/felicitas.pojtinger.com/api/indieauth"
+	"github.com/pojntfx/felicitas.pojtinger.com/api/webmention"
 )
 
 // MicropubRequest represents a Micropub create request in JSON format
@@ -133,6 +135,27 @@ func MicropubHandler(rw http.ResponseWriter, r *http.Request, contentDir, baseUR
 	// Return success with Location header
 	rw.Header().Set("Location", location)
 	rw.WriteHeader(http.StatusCreated)
+
+	// Send webmentions asynchronously after response
+	go func() {
+		// Wait a bit for Hugo to rebuild
+		time.Sleep(5 * time.Second)
+
+		log.Printf("Sending webmentions for: %s", location)
+		response, err := webmention.SendWebmentions(location)
+		if err != nil {
+			log.Printf("Webmention send error: %v", err)
+			return
+		}
+
+		successCount := 0
+		for _, result := range response.Results {
+			if result.Success {
+				successCount++
+			}
+		}
+		log.Printf("Webmentions sent: %d/%d successful", successCount, len(response.Results))
+	}()
 }
 
 // handleQuery handles Micropub configuration queries

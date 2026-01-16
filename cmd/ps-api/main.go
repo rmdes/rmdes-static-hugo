@@ -331,6 +331,21 @@ func main() {
 		microsub.MicrosubHandler(rw, r, *cacheDir)
 	})
 
+	mux.HandleFunc("/api/webmention/send", func(rw http.ResponseWriter, r *http.Request) {
+		defer func() {
+			if err := recover(); err != nil {
+				log.Println("Error occured in Webmention Send API:", err)
+
+				http.Error(rw, "Error occured in Webmention Send API", http.StatusInternalServerError)
+
+				return
+			}
+		}()
+
+		// No caching - triggers outgoing webmentions
+		webmention.SendWebmentionHandler(rw, r)
+	})
+
 	log.Println("API listening on", *laddr)
 
 	panic(http.ListenAndServe(*laddr, mux))
