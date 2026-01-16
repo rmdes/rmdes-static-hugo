@@ -60,3 +60,16 @@ indieweb:
     enabled: true
     mastodon: true
     bluesky: true
+  # POSSE Syndication (cross-posting to social platforms)
+  syndication:
+    enabled: true
+    # Bluesky syndication
+    # Credentials: BLUESKY_SERVER, BLUESKY_IDENTIFIER, BLUESKY_PASSWORD env vars
+    bluesky:
+      enabled: true
+      displayName: "Bluesky (@rmendes.net)"
+    # Mastodon syndication
+    # Credentials: MASTODON_SERVER, MASTODON_CLIENT_ID, MASTODON_CLIENT_SECRET, MASTODON_ACCESS_TOKEN env vars
+    mastodon:
+      enabled: true
+      displayName: "Mastodon (@rmdes@mstdn.social)"

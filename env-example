@@ -15,17 +15,19 @@ export GITHUB_USERNAME="yourusername"
 export GITHUB_ACTIVITY_LIMIT="5"
 
 # =============================================================================
-# Bluesky (optional - for social feed)
+# Bluesky (optional - for social feed and syndication)
 # =============================================================================
-# Your Bluesky handle
 export BLUESKY_SERVER=https://bsky.social/
+# Your Bluesky identifier (handle like "yourname.bsky.social" or email)
+export BLUESKY_IDENTIFIER=yourname.bsky.social
 # Create app password at: https://bsky.app/settings/app-passwords
 export BLUESKY_PASSWORD=xxxx-xxxx-xxxx-xxxx
 
 # =============================================================================
-# Mastodon (optional - for social feed)
+# Mastodon (optional - for social feed and syndication)
 # =============================================================================
 # Create app at: https://your.instance/settings/applications
+# Required scopes for syndication: read, write:media, write:statuses
 export MASTODON_SERVER=https://mastodon.social
 export MASTODON_CLIENT_ID=
 export MASTODON_CLIENT_SECRET=
@@ -67,3 +69,19 @@ export INDIEAUTH_TOKEN_ENDPOINT=
 
 # Site base URL for Micropub responses
 export SITE_BASE_URL="https://yoursite.com"
+
+# =============================================================================
+# POSSE Syndication (optional - cross-post to social platforms)
+# =============================================================================
+# When creating posts via Micropub, you can syndicate to Bluesky/Mastodon
+# by including mp-syndicate-to[] parameters in your request.
+
+# Enable/disable Bluesky syndication (default: true if BLUESKY_IDENTIFIER and BLUESKY_PASSWORD are set)
+export SYNDICATION_BLUESKY_ENABLED=true
+# Display name shown to Micropub clients
+export SYNDICATION_BLUESKY_NAME="Bluesky (@yourhandle.bsky.social)"
+
+# Enable/disable Mastodon syndication (default: true if Mastodon credentials are set)
+export SYNDICATION_MASTODON_ENABLED=true
+# Display name shown to Micropub clients
+export SYNDICATION_MASTODON_NAME="Mastodon (@yourhandle@mastodon.social)"

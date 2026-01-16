@@ -1,6 +1,7 @@
 package micropub
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -13,8 +14,17 @@ import (
 	"time"
 
 	"github.com/pojntfx/felicitas.pojtinger.com/api/indieauth"
+	"github.com/pojntfx/felicitas.pojtinger.com/api/syndication"
 	"github.com/pojntfx/felicitas.pojtinger.com/api/webmention"
 )
+
+// syndicationManager is set by the API server to enable cross-posting
+var syndicationManager *syndication.Manager
+
+// SetSyndicationManager sets the syndication manager for cross-posting
+func SetSyndicationManager(m *syndication.Manager) {
+	syndicationManager = m
+}
 
 // MicropubRequest represents a Micropub create request in JSON format
 type MicropubRequest struct {
@@ -121,8 +131,11 @@ func MicropubHandler(rw http.ResponseWriter, r *http.Request, contentDir, baseUR
 	// Determine post type
 	postType := determinePostType(req)
 
+	// Extract syndication targets
+	syndicationTargets := extractSyndicationTargets(req)
+
 	// Create the post
-	location, err := createPost(req, postType, contentDir, baseURL)
+	location, filePath, err := createPost(req, postType, contentDir, baseURL)
 	if err != nil {
 		rw.WriteHeader(http.StatusInternalServerError)
 		json.NewEncoder(rw).Encode(map[string]string{
@@ -136,11 +149,36 @@ func MicropubHandler(rw http.ResponseWriter, r *http.Request, contentDir, baseUR
 	rw.Header().Set("Location", location)
 	rw.WriteHeader(http.StatusCreated)
 
-	// Send webmentions asynchronously after response
+	// Handle syndication and webmentions asynchronously
 	go func() {
 		// Wait a bit for Hugo to rebuild
 		time.Sleep(5 * time.Second)
 
+		// Syndicate to selected targets
+		if syndicationManager != nil && len(syndicationTargets) > 0 {
+			log.Printf("Syndicating to: %v", syndicationTargets)
+
+			syndicationPost := createSyndicationPost(req, postType, location)
+			results := syndicationManager.Syndicate(context.Background(), syndicationPost, syndicationTargets)
+
+			// Update frontmatter with syndication URLs
+			syndicationURLs := syndication.ResultsToSyndicationURLs(results)
+			if len(syndicationURLs) > 0 {
+				if err := appendSyndicationToFrontmatter(filePath, syndicationURLs); err != nil {
+					log.Printf("Failed to update frontmatter with syndication URLs: %v", err)
+				}
+			}
+
+			for _, result := range results {
+				if result.Success {
+					log.Printf("Syndicated to %s: %s", result.Platform, result.URL)
+				} else {
+					log.Printf("Syndication to %s failed: %s", result.Platform, result.Error)
+				}
+			}
+		}
+
+		// Send webmentions
 		log.Printf("Sending webmentions for: %s", location)
 		response, err := webmention.SendWebmentions(location)
 		if err != nil {
@@ -158,12 +196,119 @@ func MicropubHandler(rw http.ResponseWriter, r *http.Request, contentDir, baseUR
 	}()
 }
 
+// extractSyndicationTargets extracts syndication target UIDs from the request
+func extractSyndicationTargets(req MicropubRequest) []string {
+	props := req.Properties
+
+	if targets, ok := props["mp-syndicate-to"]; ok {
+		if targetArr, ok := targets.([]interface{}); ok {
+			var result []string
+			for _, t := range targetArr {
+				if s, ok := t.(string); ok {
+					result = append(result, s)
+				}
+			}
+			return syndication.ParseSyndicationTargets(result)
+		}
+	}
+
+	return nil
+}
+
+// createSyndicationPost converts a Micropub request to a syndication Post
+func createSyndicationPost(req MicropubRequest, postType, postURL string) *syndication.Post {
+	post := &syndication.Post{
+		URL:  postURL,
+		Type: syndication.PostType(postType),
+	}
+
+	props := req.Properties
+
+	// Extract content
+	post.Content = extractContent(req)
+
+	// Extract title
+	if names, ok := props["name"]; ok {
+		if nameArr, ok := names.([]interface{}); ok && len(nameArr) > 0 {
+			if s, ok := nameArr[0].(string); ok {
+				post.Title = s
+			}
+		}
+	}
+
+	// Extract target URL for bookmarks, likes, reposts, replies
+	for _, key := range []string{"bookmark-of", "like-of", "repost-of", "in-reply-to"} {
+		if urls, ok := props[key]; ok {
+			if urlArr, ok := urls.([]interface{}); ok && len(urlArr) > 0 {
+				if s, ok := urlArr[0].(string); ok {
+					post.TargetURL = s
+					break
+				}
+			}
+		}
+	}
+
+	// Extract tags
+	if cats, ok := props["category"]; ok {
+		if catArr, ok := cats.([]interface{}); ok {
+			for _, c := range catArr {
+				if s, ok := c.(string); ok {
+					post.Tags = append(post.Tags, s)
+				}
+			}
+		}
+	}
+
+	return post
+}
+
+// appendSyndicationToFrontmatter adds syndication URLs to a post's frontmatter
+func appendSyndicationToFrontmatter(filePath string, syndicationURLs map[string]string) error {
+	content, err := os.ReadFile(filePath)
+	if err != nil {
+		return err
+	}
+
+	fileContent := string(content)
+
+	// Find the end of frontmatter
+	parts := strings.SplitN(fileContent, "---", 3)
+	if len(parts) < 3 {
+		return fmt.Errorf("invalid frontmatter format")
+	}
+
+	// Build syndication YAML
+	var syndicationLines []string
+	syndicationLines = append(syndicationLines, "syndication:")
+	for platform, url := range syndicationURLs {
+		syndicationLines = append(syndicationLines, fmt.Sprintf("  %s: %q", platform, url))
+	}
+
+	// Insert syndication before the closing ---
+	newFrontmatter := strings.TrimRight(parts[1], "\n") + "\n" + strings.Join(syndicationLines, "\n") + "\n"
+	newContent := "---" + newFrontmatter + "---" + parts[2]
+
+	return os.WriteFile(filePath, []byte(newContent), 0644)
+}
+
 // handleQuery handles Micropub configuration queries
 func handleQuery(rw http.ResponseWriter, r *http.Request, baseURL string) {
 	q := r.URL.Query().Get("q")
 
 	switch q {
 	case "config":
+		var syndicateTargets []SyndicateTarget
+		if syndicationManager != nil {
+			targets := syndicationManager.GetTargets()
+			syndicateTargets = make([]SyndicateTarget, len(targets))
+			for i, t := range targets {
+				syndicateTargets[i] = SyndicateTarget{
+					UID:  t.UID,
+					Name: t.Name,
+				}
+			}
+		}
+
 		config := ConfigResponse{
 			MediaEndpoint: baseURL + "/api/micropub/media",
 			PostTypes: []PostTypeConfig{
@@ -173,13 +318,24 @@ func handleQuery(rw http.ResponseWriter, r *http.Request, baseURL string) {
 				{Type: "bookmark", Name: "Bookmark"},
 				{Type: "repost", Name: "Repost"},
 			},
-			SyndicateTo: []SyndicateTarget{}, // No syndication targets configured yet
+			SyndicateTo: syndicateTargets,
 		}
 		json.NewEncoder(rw).Encode(config)
 
 	case "syndicate-to":
+		var syndicateTargets []SyndicateTarget
+		if syndicationManager != nil {
+			targets := syndicationManager.GetTargets()
+			syndicateTargets = make([]SyndicateTarget, len(targets))
+			for i, t := range targets {
+				syndicateTargets[i] = SyndicateTarget{
+					UID:  t.UID,
+					Name: t.Name,
+				}
+			}
+		}
 		json.NewEncoder(rw).Encode(map[string][]SyndicateTarget{
-			"syndicate-to": {},
+			"syndicate-to": syndicateTargets,
 		})
 
 	case "source":
@@ -213,18 +369,20 @@ func formToMicropub(form url.Values) MicropubRequest {
 
 	// Map form fields to properties
 	fieldMappings := map[string]string{
-		"content":     "content",
-		"name":        "name",
-		"summary":     "summary",
-		"category":    "category",
-		"category[]":  "category",
-		"like-of":     "like-of",
-		"bookmark-of": "bookmark-of",
-		"repost-of":   "repost-of",
-		"in-reply-to": "in-reply-to",
-		"mp-slug":     "mp-slug",
-		"photo":       "photo",
-		"photo[]":     "photo",
+		"content":           "content",
+		"name":              "name",
+		"summary":           "summary",
+		"category":          "category",
+		"category[]":        "category",
+		"like-of":           "like-of",
+		"bookmark-of":       "bookmark-of",
+		"repost-of":         "repost-of",
+		"in-reply-to":       "in-reply-to",
+		"mp-slug":           "mp-slug",
+		"photo":             "photo",
+		"photo[]":           "photo",
+		"mp-syndicate-to":   "mp-syndicate-to",
+		"mp-syndicate-to[]": "mp-syndicate-to",
 	}
 
 	for formKey, propKey := range fieldMappings {
@@ -267,7 +425,8 @@ func determinePostType(req MicropubRequest) string {
 }
 
 // createPost creates a Hugo content file from the Micropub request
-func createPost(req MicropubRequest, postType, contentDir, baseURL string) (string, error) {
+// Returns the post URL and the file path to the created file
+func createPost(req MicropubRequest, postType, contentDir, baseURL string) (string, string, error) {
 	now := time.Now()
 
 	// Generate slug
@@ -295,7 +454,7 @@ func createPost(req MicropubRequest, postType, contentDir, baseURL string) (stri
 	// Create post directory
 	postDir := filepath.Join(contentDir, typeDir, slug)
 	if err := os.MkdirAll(postDir, 0755); err != nil {
-		return "", fmt.Errorf("failed to create directory: %w", err)
+		return "", "", fmt.Errorf("failed to create directory: %w", err)
 	}
 
 	// Generate frontmatter
@@ -309,11 +468,11 @@ func createPost(req MicropubRequest, postType, contentDir, baseURL string) (stri
 	fileContent := fmt.Sprintf("---\n%s---\n\n%s\n", frontmatter, content)
 
 	if err := os.WriteFile(filePath, []byte(fileContent), 0644); err != nil {
-		return "", fmt.Errorf("failed to write file: %w", err)
+		return "", "", fmt.Errorf("failed to write file: %w", err)
 	}
 
-	// Return URL
-	return fmt.Sprintf("%s/%s/%s/", baseURL, typeDir, slug), nil
+	// Return URL and file path
+	return fmt.Sprintf("%s/%s/%s/", baseURL, typeDir, slug), filePath, nil
 }
 
 // generateSlug creates a URL-safe slug for the post

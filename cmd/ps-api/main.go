@@ -17,6 +17,7 @@ import (
 	"github.com/pojntfx/felicitas.pojtinger.com/api/micropub"
 	"github.com/pojntfx/felicitas.pojtinger.com/api/microsub"
 	"github.com/pojntfx/felicitas.pojtinger.com/api/spotify"
+	"github.com/pojntfx/felicitas.pojtinger.com/api/syndication"
 	"github.com/pojntfx/felicitas.pojtinger.com/api/twitch"
 	"github.com/pojntfx/felicitas.pojtinger.com/api/twitter"
 	"github.com/pojntfx/felicitas.pojtinger.com/api/webmention"
@@ -33,7 +34,14 @@ func main() {
 	mastodonAccessToken := flag.String("mastodon-access-token", "", "Mastodon API access token (can also be set using the MASTODON_ACCESS_TOKEN env variable)")
 
 	blueskyServer := flag.String("bluesky-server", "", "Bluesky API server (can also be set using the BLUESKY_SERVER env variable)")
+	blueskyIdentifier := flag.String("bluesky-identifier", "", "Bluesky identifier/handle for syndication (can also be set using the BLUESKY_IDENTIFIER env variable)")
 	blueskyPassword := flag.String("bluesky-password", "", "Bluesky password (can also be set using the BLUESKY_PASSWORD env variable)")
+
+	// Syndication configuration
+	syndicationBlueskyEnabled := flag.Bool("syndication-bluesky", true, "Enable Bluesky syndication (can also be set using SYNDICATION_BLUESKY_ENABLED env variable)")
+	syndicationBlueskyName := flag.String("syndication-bluesky-name", "Bluesky", "Display name for Bluesky syndication target (can also be set using SYNDICATION_BLUESKY_NAME env variable)")
+	syndicationMastodonEnabled := flag.Bool("syndication-mastodon", true, "Enable Mastodon syndication (can also be set using SYNDICATION_MASTODON_ENABLED env variable)")
+	syndicationMastodonName := flag.String("syndication-mastodon-name", "Mastodon", "Display name for Mastodon syndication target (can also be set using SYNDICATION_MASTODON_NAME env variable)")
 
 	forgesFile := flag.String("forges", filepath.Join("data", "forges.yaml"), "Forges configuration file (can also be set using the FORGES_FILE env variable)")
 	forgeTokens := flag.String("forge-tokens", "", "Forge tokens as JSON object, e.g. {\"github.com\": \"token\"} (can also be set using the FORGE_TOKENS env variable)")
@@ -84,8 +92,26 @@ func main() {
 		*blueskyServer = os.Getenv("BLUESKY_SERVER")
 	}
 
+	if *blueskyIdentifier == "" {
+		*blueskyIdentifier = os.Getenv("BLUESKY_IDENTIFIER")
+	}
+
 	if *blueskyPassword == "" {
 		*blueskyPassword = os.Getenv("BLUESKY_PASSWORD")
+	}
+
+	// Syndication env overrides
+	if envVal := os.Getenv("SYNDICATION_BLUESKY_ENABLED"); envVal != "" {
+		*syndicationBlueskyEnabled = envVal == "true" || envVal == "1"
+	}
+	if envVal := os.Getenv("SYNDICATION_BLUESKY_NAME"); envVal != "" {
+		*syndicationBlueskyName = envVal
+	}
+	if envVal := os.Getenv("SYNDICATION_MASTODON_ENABLED"); envVal != "" {
+		*syndicationMastodonEnabled = envVal == "true" || envVal == "1"
+	}
+	if envVal := os.Getenv("SYNDICATION_MASTODON_NAME"); envVal != "" {
+		*syndicationMastodonName = envVal
 	}
 
 	if *forgesFile == "" {
@@ -154,6 +180,33 @@ func main() {
 
 		*ttl = envTTL
 	}
+
+	// Initialize syndication manager
+	syndicationMgr := syndication.NewManager()
+
+	// Register Bluesky syndication if enabled and configured
+	if *syndicationBlueskyEnabled && *blueskyIdentifier != "" && *blueskyPassword != "" {
+		syndicationMgr.RegisterBluesky(syndication.BlueskyConfig{
+			Server:     *blueskyServer,
+			Identifier: *blueskyIdentifier,
+			Password:   *blueskyPassword,
+		}, *syndicationBlueskyName)
+		log.Printf("Bluesky syndication enabled: %s", *syndicationBlueskyName)
+	}
+
+	// Register Mastodon syndication if enabled and configured
+	if *syndicationMastodonEnabled && *mastodonServer != "" && *mastodonAccessToken != "" {
+		syndicationMgr.RegisterMastodon(syndication.MastodonConfig{
+			Server:       *mastodonServer,
+			ClientID:     *mastodonClientID,
+			ClientSecret: *mastodonClientSecret,
+			AccessToken:  *mastodonAccessToken,
+		}, *syndicationMastodonName)
+		log.Printf("Mastodon syndication enabled: %s", *syndicationMastodonName)
+	}
+
+	// Set syndication manager for Micropub
+	micropub.SetSyndicationManager(syndicationMgr)
 
 	mux := http.NewServeMux()
 
