@@ -17,6 +17,37 @@
       <link rel="me" href="{{ . }}" />
     {{ end }}
 
+    {{/* IndieWeb endpoints and identity links */}}
+    {{ if .Site.Data.integrations.indieweb.enabled }}
+      {{/* Webmention endpoint for receiving mentions */}}
+      {{ if .Site.Data.integrations.indieweb.webmention.enabled }}
+        <link rel="webmention" href="{{ .Site.Data.integrations.indieweb.webmention.endpoint }}" />
+      {{ end }}
+
+      {{/* IndieAuth endpoints */}}
+      {{ if .Site.Data.integrations.indieweb.indieauth.enabled }}
+        <link rel="authorization_endpoint" href="{{ .Site.Data.integrations.indieweb.indieauth.endpoint }}" />
+        <link rel="token_endpoint" href="{{ .Site.Data.integrations.indieweb.indieauth.tokenEndpoint }}" />
+      {{ end }}
+
+      {{/* Micropub endpoint */}}
+      {{ if .Site.Data.integrations.indieweb.micropub.enabled }}
+        <link rel="micropub" href="{{ .Site.Data.site.opengraph.baseUrl }}/api/micropub" />
+      {{ end }}
+
+      {{/* Microsub endpoint */}}
+      {{ if .Site.Data.integrations.indieweb.microsub.enabled }}
+        <link rel="microsub" href="{{ .Site.Data.site.opengraph.baseUrl }}/api/microsub" />
+      {{ end }}
+
+      {{/* rel=me identity verification links from socials */}}
+      {{ range .Site.Data.links.socials }}
+        {{ if .link }}
+          <link rel="me" href="{{ .link }}" />
+        {{ end }}
+      {{ end }}
+    {{ end }}
+
 
     <link rel="icon" href="{{ .Site.Data.person.img }}" />
 

@@ -77,19 +77,21 @@
         pf-v6-x-person__header--standalone
       {{ end }}"
     >
+      {{/* h-card microformat for IndieWeb */}}
       <div
-        class="pf-v6-l-grid__item pf-m-12-col pf-m-5-col-on-lg pf-v6-u-display-flex pf-v6-u-flex-direction-column pf-v6-u-align-items-center pf-v6-u-justify-content-center"
+        class="h-card pf-v6-l-grid__item pf-m-12-col pf-m-5-col-on-lg pf-v6-u-display-flex pf-v6-u-flex-direction-column pf-v6-u-align-items-center pf-v6-u-justify-content-center"
       >
         <h1
-          class="pf-v6-u-font-size-xl pf-v6-u-font-weight-bold pf-v6-u-mb-xs pf-v6-x-u-text-shadow-sm pf-v6-x-u-text--freestanding pf-v6-x-c-name"
+          class="p-name pf-v6-u-font-size-xl pf-v6-u-font-weight-bold pf-v6-u-mb-xs pf-v6-x-u-text-shadow-sm pf-v6-x-u-text--freestanding pf-v6-x-c-name"
         >
           {{ .Site.Data.person.name }}
         </h1>
         <p
-          class="pf-v6-x-u-text-shadow-sm pf-v6-x-u-text--freestanding pf-v6-x-u-text--center"
+          class="p-note pf-v6-x-u-text-shadow-sm pf-v6-x-u-text--freestanding pf-v6-x-u-text--center"
         >
           {{ .Site.Data.person.description | safeHTML }}
         </p>
+        <a class="u-url u-uid" href="{{ .Site.Data.site.opengraph.baseUrl }}" style="display:none;">{{ .Site.Data.person.name }}</a>
       </div>
 
       <figure
@@ -102,7 +104,7 @@
           <img
             src="{{ .Site.Data.person.img }}"
             alt="Profile picture of {{ .Site.Data.person.name }}"
-            class="pf-v6-c-avatar pf-m-xl pf-v6-c-avatar--main"
+            class="u-photo pf-v6-c-avatar pf-m-xl pf-v6-c-avatar--main"
           />
         </div>
 
@@ -230,6 +232,15 @@
         </section>
       </div>
     </div>
+
+    {{/* Webmentions for homepage - shown below social feeds */}}
+    {{ if .Site.Data.integrations.indieweb.webmention.enabled }}
+      <section id="webmentions" class="pf-v6-u-px-lg pf-v6-u-px-0-on-xl">
+        <div class="pf-v6-x-c-projects--max-width">
+          {{ partial "webmentions" . }}
+        </div>
+      </section>
+    {{ end }}
 
     {{ if .Site.Data.integrations.github.projects }}
       <section id="projects">

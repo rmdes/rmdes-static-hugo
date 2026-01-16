@@ -1,0 +1,51 @@
+{{ define "main" }}
+  <main
+    class="pf-v6-c-page__main pf-v6-c-page__main--with-overlay {{ if .Site.Data.effects.grid }}
+      pf-v6-c-page__main--with-overlay--grid
+    {{ end }} pf-v6-x-u-blur {{ if or .Site.Data.effects.fireworks .Site.Data.effects.snowfall .Site.Data.effects.rainfall .Site.Data.effects.sunrays }}
+      pf-v6-c-page__main--with-effects{{ if not .Site.Data.effects.blur }}
+        pf-v6-c-page__main--with-effects--without-blur
+      {{ end }}
+    {{ end }}"
+    tabindex="-1"
+    id="main"
+  >
+    <section class="pf-v6-c-page__main-section pf-m-fill pf-v6-c-page__main-section--max-width pf-v6-u-pt-xl">
+      <div class="h-entry pf-v6-c-card pf-v6-c-card--full-width pf-v6-u-p-xl">
+        <p class="p-summary pf-v6-u-font-size-lg">
+          <i class="fas fa-retweet pf-v6-u-mr-sm" style="color: #17a2b8;" aria-hidden="true"></i>
+          Reposted
+          <a class="u-repost-of" href="{{ .Params.repostOf }}" target="_blank" rel="noopener">
+            {{ .Params.repostOf }}
+          </a>
+        </p>
+
+        {{ with .Content }}
+          <div class="e-content pf-v6-c-content pf-v6-u-mt-lg">
+            {{ . }}
+          </div>
+        {{ end }}
+
+        <footer class="pf-v6-u-mt-lg pf-v6-u-pt-md pf-v6-u-border-top">
+          <div class="pf-v6-l-flex pf-m-align-items-center pf-m-gap-md pf-v6-u-color-200">
+            <time class="dt-published" datetime="{{ .Date.Format "2006-01-02T15:04:05Z07:00" }}">
+              <i class="fas fa-clock" aria-hidden="true"></i>
+              {{ .Date.Format "January 2, 2006" }}
+            </time>
+            <a class="u-url pf-v6-c-button pf-m-link pf-m-inline" href="{{ .Permalink }}">
+              <i class="fas fa-link" aria-hidden="true"></i>
+              Permalink
+            </a>
+          </div>
+        </footer>
+
+        {{ partial "author-hcard" . }}
+      </div>
+
+      {{/* Webmentions */}}
+      {{ partial "webmentions" . }}
+    </section>
+
+    {{ partial "footer" . }}
+  </main>
+{{ end }}

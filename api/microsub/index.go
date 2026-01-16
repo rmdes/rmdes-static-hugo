@@ -1,0 +1,760 @@
+package microsub
+
+import (
+	"encoding/json"
+	"fmt"
+	"io"
+	"log"
+	"net/http"
+	"os"
+	"path/filepath"
+	"sort"
+	"strings"
+	"sync"
+	"time"
+
+	"github.com/pojntfx/felicitas.pojtinger.com/api/indieauth"
+)
+
+// Channel represents a Microsub channel (category/folder)
+type Channel struct {
+	UID  string `json:"uid"`
+	Name string `json:"name"`
+}
+
+// Feed represents a subscribed feed
+type Feed struct {
+	Type string `json:"type"`
+	URL  string `json:"url"`
+	Name string `json:"name,omitempty"`
+}
+
+// Item represents a feed item in JF2 format
+type Item struct {
+	Type      string   `json:"type"`
+	Name      string   `json:"name,omitempty"`
+	Content   *Content `json:"content,omitempty"`
+	Published string   `json:"published,omitempty"`
+	URL       string   `json:"url,omitempty"`
+	Author    *Author  `json:"author,omitempty"`
+	Photo     []string `json:"photo,omitempty"`
+	UID       string   `json:"_id,omitempty"`
+	IsRead    bool     `json:"_is_read,omitempty"`
+}
+
+// Content represents item content
+type Content struct {
+	Text string `json:"text,omitempty"`
+	HTML string `json:"html,omitempty"`
+}
+
+// Author represents an item author
+type Author struct {
+	Type  string `json:"type"`
+	Name  string `json:"name,omitempty"`
+	URL   string `json:"url,omitempty"`
+	Photo string `json:"photo,omitempty"`
+}
+
+// MicrosubData stores all Microsub state
+type MicrosubData struct {
+	Channels      []Channel         `json:"channels"`
+	Subscriptions map[string][]Feed `json:"subscriptions"` // channel UID -> feeds
+	ReadItems     map[string]bool   `json:"read_items"`    // item UID -> read status
+}
+
+var (
+	dataLock sync.RWMutex
+	data     *MicrosubData
+	dataPath string
+)
+
+// loadData loads Microsub data from file
+func loadData(cacheDir string) (*MicrosubData, error) {
+	dataLock.Lock()
+	defer dataLock.Unlock()
+
+	if data != nil {
+		return data, nil
+	}
+
+	dataPath = filepath.Join(cacheDir, "microsub_data.json")
+
+	// Try to load existing data
+	file, err := os.ReadFile(dataPath)
+	if err != nil {
+		if os.IsNotExist(err) {
+			// Create default data with a "default" channel
+			data = &MicrosubData{
+				Channels: []Channel{
+					{UID: "default", Name: "Home"},
+					{UID: "notifications", Name: "Notifications"},
+				},
+				Subscriptions: make(map[string][]Feed),
+				ReadItems:     make(map[string]bool),
+			}
+			return data, saveDataLocked()
+		}
+		return nil, err
+	}
+
+	data = &MicrosubData{}
+	if err := json.Unmarshal(file, data); err != nil {
+		return nil, err
+	}
+
+	if data.Subscriptions == nil {
+		data.Subscriptions = make(map[string][]Feed)
+	}
+	if data.ReadItems == nil {
+		data.ReadItems = make(map[string]bool)
+	}
+
+	return data, nil
+}
+
+// saveDataLocked saves data (must hold dataLock)
+func saveDataLocked() error {
+	file, err := json.MarshalIndent(data, "", "  ")
+	if err != nil {
+		return err
+	}
+	return os.WriteFile(dataPath, file, 0644)
+}
+
+// saveData saves data with locking
+func saveData() error {
+	dataLock.Lock()
+	defer dataLock.Unlock()
+	return saveDataLocked()
+}
+
+// MicrosubHandler handles Microsub API requests
+func MicrosubHandler(rw http.ResponseWriter, r *http.Request, cacheDir string) {
+	// Verify IndieAuth token for all requests
+	token := indieauth.ExtractToken(r)
+	tokenResp, err := indieauth.VerifyToken(token, indieauth.GetTokenEndpoint(), indieauth.GetExpectedMe())
+	if err != nil {
+		log.Printf("Microsub auth error: %v", err)
+		http.Error(rw, `{"error": "unauthorized"}`, http.StatusUnauthorized)
+		return
+	}
+
+	// Check for read scope (minimum required)
+	if !indieauth.HasScope(tokenResp, "read") && !indieauth.HasScope(tokenResp, "follow") && !indieauth.HasScope(tokenResp, "channels") {
+		http.Error(rw, `{"error": "insufficient_scope"}`, http.StatusForbidden)
+		return
+	}
+
+	// Load data
+	if _, err := loadData(cacheDir); err != nil {
+		log.Printf("Failed to load microsub data: %v", err)
+		http.Error(rw, `{"error": "server_error"}`, http.StatusInternalServerError)
+		return
+	}
+
+	rw.Header().Set("Content-Type", "application/json")
+
+	// Handle based on method
+	if r.Method == http.MethodGet {
+		handleGet(rw, r, tokenResp)
+	} else if r.Method == http.MethodPost {
+		handlePost(rw, r, tokenResp)
+	} else {
+		http.Error(rw, `{"error": "method_not_allowed"}`, http.StatusMethodNotAllowed)
+	}
+}
+
+func handleGet(rw http.ResponseWriter, r *http.Request, tokenResp *indieauth.TokenResponse) {
+	action := r.URL.Query().Get("action")
+
+	switch action {
+	case "channels":
+		handleGetChannels(rw, r)
+	case "timeline":
+		handleGetTimeline(rw, r)
+	case "follow":
+		handleGetFollowing(rw, r)
+	default:
+		// Default: return channels
+		handleGetChannels(rw, r)
+	}
+}
+
+func handlePost(rw http.ResponseWriter, r *http.Request, tokenResp *indieauth.TokenResponse) {
+	if err := r.ParseForm(); err != nil {
+		http.Error(rw, `{"error": "invalid_request"}`, http.StatusBadRequest)
+		return
+	}
+
+	action := r.FormValue("action")
+
+	switch action {
+	case "channels":
+		if !indieauth.HasScope(tokenResp, "channels") {
+			http.Error(rw, `{"error": "insufficient_scope"}`, http.StatusForbidden)
+			return
+		}
+		handlePostChannels(rw, r)
+	case "follow":
+		if !indieauth.HasScope(tokenResp, "follow") {
+			http.Error(rw, `{"error": "insufficient_scope"}`, http.StatusForbidden)
+			return
+		}
+		handleFollow(rw, r)
+	case "unfollow":
+		if !indieauth.HasScope(tokenResp, "follow") {
+			http.Error(rw, `{"error": "insufficient_scope"}`, http.StatusForbidden)
+			return
+		}
+		handleUnfollow(rw, r)
+	case "search":
+		handleSearch(rw, r)
+	case "preview":
+		handlePreview(rw, r)
+	case "timeline":
+		handleMarkRead(rw, r)
+	default:
+		http.Error(rw, `{"error": "invalid_action"}`, http.StatusBadRequest)
+	}
+}
+
+func handleGetChannels(rw http.ResponseWriter, r *http.Request) {
+	dataLock.RLock()
+	defer dataLock.RUnlock()
+
+	response := map[string]interface{}{
+		"channels": data.Channels,
+	}
+	json.NewEncoder(rw).Encode(response)
+}
+
+func handlePostChannels(rw http.ResponseWriter, r *http.Request) {
+	name := r.FormValue("name")
+	uid := r.FormValue("channel")
+	method := r.FormValue("method")
+
+	dataLock.Lock()
+	defer dataLock.Unlock()
+
+	switch method {
+	case "delete":
+		// Delete channel
+		if uid == "default" || uid == "notifications" {
+			http.Error(rw, `{"error": "cannot_delete_default_channel"}`, http.StatusBadRequest)
+			return
+		}
+		newChannels := []Channel{}
+		for _, ch := range data.Channels {
+			if ch.UID != uid {
+				newChannels = append(newChannels, ch)
+			}
+		}
+		data.Channels = newChannels
+		delete(data.Subscriptions, uid)
+		saveDataLocked()
+		json.NewEncoder(rw).Encode(map[string]string{"result": "deleted"})
+
+	case "order":
+		// Reorder channels - not implemented
+		http.Error(rw, `{"error": "not_implemented"}`, http.StatusNotImplemented)
+
+	default:
+		if uid != "" {
+			// Update existing channel
+			for i, ch := range data.Channels {
+				if ch.UID == uid {
+					data.Channels[i].Name = name
+					saveDataLocked()
+					json.NewEncoder(rw).Encode(data.Channels[i])
+					return
+				}
+			}
+			http.Error(rw, `{"error": "channel_not_found"}`, http.StatusNotFound)
+		} else {
+			// Create new channel
+			newUID := fmt.Sprintf("channel-%d", time.Now().UnixNano())
+			newChannel := Channel{UID: newUID, Name: name}
+			data.Channels = append(data.Channels, newChannel)
+			saveDataLocked()
+			json.NewEncoder(rw).Encode(newChannel)
+		}
+	}
+}
+
+func handleGetFollowing(rw http.ResponseWriter, r *http.Request) {
+	channel := r.URL.Query().Get("channel")
+	if channel == "" {
+		channel = "default"
+	}
+
+	dataLock.RLock()
+	defer dataLock.RUnlock()
+
+	feeds := data.Subscriptions[channel]
+	if feeds == nil {
+		feeds = []Feed{}
+	}
+
+	response := map[string]interface{}{
+		"items": feeds,
+	}
+	json.NewEncoder(rw).Encode(response)
+}
+
+func handleFollow(rw http.ResponseWriter, r *http.Request) {
+	url := r.FormValue("url")
+	channel := r.FormValue("channel")
+	if channel == "" {
+		channel = "default"
+	}
+
+	if url == "" {
+		http.Error(rw, `{"error": "url_required"}`, http.StatusBadRequest)
+		return
+	}
+
+	dataLock.Lock()
+	defer dataLock.Unlock()
+
+	// Check if already subscribed
+	for _, feed := range data.Subscriptions[channel] {
+		if feed.URL == url {
+			json.NewEncoder(rw).Encode(feed)
+			return
+		}
+	}
+
+	// Add new subscription
+	newFeed := Feed{
+		Type: "feed",
+		URL:  url,
+	}
+	data.Subscriptions[channel] = append(data.Subscriptions[channel], newFeed)
+	saveDataLocked()
+
+	json.NewEncoder(rw).Encode(newFeed)
+}
+
+func handleUnfollow(rw http.ResponseWriter, r *http.Request) {
+	url := r.FormValue("url")
+	channel := r.FormValue("channel")
+	if channel == "" {
+		channel = "default"
+	}
+
+	if url == "" {
+		http.Error(rw, `{"error": "url_required"}`, http.StatusBadRequest)
+		return
+	}
+
+	dataLock.Lock()
+	defer dataLock.Unlock()
+
+	newFeeds := []Feed{}
+	for _, feed := range data.Subscriptions[channel] {
+		if feed.URL != url {
+			newFeeds = append(newFeeds, feed)
+		}
+	}
+	data.Subscriptions[channel] = newFeeds
+	saveDataLocked()
+
+	json.NewEncoder(rw).Encode(map[string]string{"result": "unfollowed"})
+}
+
+func handleSearch(rw http.ResponseWriter, r *http.Request) {
+	query := r.FormValue("query")
+	if query == "" {
+		http.Error(rw, `{"error": "query_required"}`, http.StatusBadRequest)
+		return
+	}
+
+	// Simple search - just return the query as a potential feed URL
+	results := []Feed{
+		{Type: "feed", URL: query},
+	}
+
+	response := map[string]interface{}{
+		"results": results,
+	}
+	json.NewEncoder(rw).Encode(response)
+}
+
+func handlePreview(rw http.ResponseWriter, r *http.Request) {
+	url := r.FormValue("url")
+	if url == "" {
+		http.Error(rw, `{"error": "url_required"}`, http.StatusBadRequest)
+		return
+	}
+
+	// Fetch and parse the feed
+	items, err := fetchFeed(url)
+	if err != nil {
+		log.Printf("Failed to fetch feed %s: %v", url, err)
+		http.Error(rw, fmt.Sprintf(`{"error": "fetch_failed", "error_description": "%s"}`, err.Error()), http.StatusBadGateway)
+		return
+	}
+
+	response := map[string]interface{}{
+		"items": items,
+	}
+	json.NewEncoder(rw).Encode(response)
+}
+
+func handleGetTimeline(rw http.ResponseWriter, r *http.Request) {
+	channel := r.URL.Query().Get("channel")
+	if channel == "" {
+		channel = "default"
+	}
+
+	dataLock.RLock()
+	feeds := data.Subscriptions[channel]
+	readItems := data.ReadItems
+	dataLock.RUnlock()
+
+	// Fetch all feeds and aggregate items
+	var allItems []Item
+	for _, feed := range feeds {
+		items, err := fetchFeed(feed.URL)
+		if err != nil {
+			log.Printf("Failed to fetch feed %s: %v", feed.URL, err)
+			continue
+		}
+		allItems = append(allItems, items...)
+	}
+
+	// Sort by published date (newest first)
+	sort.Slice(allItems, func(i, j int) bool {
+		return allItems[i].Published > allItems[j].Published
+	})
+
+	// Mark read status
+	for i := range allItems {
+		if allItems[i].UID != "" {
+			allItems[i].IsRead = readItems[allItems[i].UID]
+		}
+	}
+
+	// Limit to 50 items
+	if len(allItems) > 50 {
+		allItems = allItems[:50]
+	}
+
+	response := map[string]interface{}{
+		"items": allItems,
+	}
+	json.NewEncoder(rw).Encode(response)
+}
+
+func handleMarkRead(rw http.ResponseWriter, r *http.Request) {
+	method := r.FormValue("method")
+	if method != "mark_read" && method != "mark_unread" {
+		http.Error(rw, `{"error": "invalid_method"}`, http.StatusBadRequest)
+		return
+	}
+
+	// Get entries to mark
+	entries := r.Form["entry[]"]
+	if len(entries) == 0 {
+		entries = r.Form["entry"]
+	}
+
+	if len(entries) == 0 {
+		// Check for last_read_entry (mark all before this as read)
+		lastRead := r.FormValue("last_read_entry")
+		if lastRead == "" {
+			http.Error(rw, `{"error": "entry_required"}`, http.StatusBadRequest)
+			return
+		}
+		entries = []string{lastRead}
+	}
+
+	dataLock.Lock()
+	defer dataLock.Unlock()
+
+	for _, entry := range entries {
+		if method == "mark_read" {
+			data.ReadItems[entry] = true
+		} else {
+			delete(data.ReadItems, entry)
+		}
+	}
+	saveDataLocked()
+
+	json.NewEncoder(rw).Encode(map[string]string{"result": "ok"})
+}
+
+// fetchFeed fetches and parses a feed URL into JF2 items
+func fetchFeed(url string) ([]Item, error) {
+	resp, err := http.Get(url)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("HTTP %d", resp.StatusCode)
+	}
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	content := string(body)
+	contentType := resp.Header.Get("Content-Type")
+
+	// Try to parse as JSON Feed first
+	if strings.Contains(contentType, "json") || strings.HasPrefix(content, "{") {
+		return parseJSONFeed(body)
+	}
+
+	// Try to parse as RSS/Atom
+	return parseXMLFeed(body, url)
+}
+
+// parseJSONFeed parses a JSON Feed into JF2 items
+func parseJSONFeed(data []byte) ([]Item, error) {
+	var feed struct {
+		Items []struct {
+			ID            string `json:"id"`
+			URL           string `json:"url"`
+			Title         string `json:"title"`
+			ContentHTML   string `json:"content_html"`
+			ContentText   string `json:"content_text"`
+			DatePublished string `json:"date_published"`
+			Author        struct {
+				Name string `json:"name"`
+				URL  string `json:"url"`
+			} `json:"author"`
+		} `json:"items"`
+	}
+
+	if err := json.Unmarshal(data, &feed); err != nil {
+		return nil, err
+	}
+
+	var items []Item
+	for _, item := range feed.Items {
+		jf2Item := Item{
+			Type:      "entry",
+			Name:      item.Title,
+			URL:       item.URL,
+			UID:       item.ID,
+			Published: item.DatePublished,
+		}
+
+		if item.ContentHTML != "" || item.ContentText != "" {
+			jf2Item.Content = &Content{
+				HTML: item.ContentHTML,
+				Text: item.ContentText,
+			}
+		}
+
+		if item.Author.Name != "" {
+			jf2Item.Author = &Author{
+				Type: "card",
+				Name: item.Author.Name,
+				URL:  item.Author.URL,
+			}
+		}
+
+		items = append(items, jf2Item)
+	}
+
+	return items, nil
+}
+
+// parseXMLFeed parses RSS/Atom feed into JF2 items (simplified)
+func parseXMLFeed(data []byte, feedURL string) ([]Item, error) {
+	content := string(data)
+	var items []Item
+
+	// Very simple RSS parsing - look for <item> or <entry> elements
+	isAtom := strings.Contains(content, "<feed")
+
+	if isAtom {
+		// Parse Atom
+		entries := splitXMLElements(content, "entry")
+		for _, entry := range entries {
+			item := Item{
+				Type:      "entry",
+				Name:      extractXMLElement(entry, "title"),
+				URL:       extractXMLAttr(entry, "link", "href"),
+				UID:       extractXMLElement(entry, "id"),
+				Published: extractXMLElement(entry, "published"),
+			}
+
+			if item.URL == "" {
+				item.URL = extractXMLElement(entry, "link")
+			}
+			if item.Published == "" {
+				item.Published = extractXMLElement(entry, "updated")
+			}
+
+			contentHTML := extractXMLElement(entry, "content")
+			if contentHTML == "" {
+				contentHTML = extractXMLElement(entry, "summary")
+			}
+			if contentHTML != "" {
+				item.Content = &Content{HTML: contentHTML}
+			}
+
+			authorName := extractXMLElement(entry, "author>name")
+			if authorName == "" {
+				authorName = extractXMLElement(entry, "name")
+			}
+			if authorName != "" {
+				item.Author = &Author{Type: "card", Name: authorName}
+			}
+
+			if item.UID == "" {
+				item.UID = item.URL
+			}
+
+			items = append(items, item)
+		}
+	} else {
+		// Parse RSS
+		rssItems := splitXMLElements(content, "item")
+		for _, rssItem := range rssItems {
+			item := Item{
+				Type:      "entry",
+				Name:      extractXMLElement(rssItem, "title"),
+				URL:       extractXMLElement(rssItem, "link"),
+				UID:       extractXMLElement(rssItem, "guid"),
+				Published: extractXMLElement(rssItem, "pubDate"),
+			}
+
+			if item.Published == "" {
+				item.Published = extractXMLElement(rssItem, "dc:date")
+			}
+
+			description := extractXMLElement(rssItem, "description")
+			contentEncoded := extractXMLElement(rssItem, "content:encoded")
+			if contentEncoded != "" {
+				item.Content = &Content{HTML: contentEncoded}
+			} else if description != "" {
+				item.Content = &Content{HTML: description}
+			}
+
+			author := extractXMLElement(rssItem, "author")
+			if author == "" {
+				author = extractXMLElement(rssItem, "dc:creator")
+			}
+			if author != "" {
+				item.Author = &Author{Type: "card", Name: author}
+			}
+
+			if item.UID == "" {
+				item.UID = item.URL
+			}
+
+			items = append(items, item)
+		}
+	}
+
+	return items, nil
+}
+
+// Helper functions for simple XML parsing
+
+func splitXMLElements(content, tag string) []string {
+	var elements []string
+	startTag := "<" + tag
+	endTag := "</" + tag + ">"
+
+	for {
+		start := strings.Index(content, startTag)
+		if start == -1 {
+			break
+		}
+
+		// Find the end of the start tag
+		tagEnd := strings.Index(content[start:], ">")
+		if tagEnd == -1 {
+			break
+		}
+
+		end := strings.Index(content[start:], endTag)
+		if end == -1 {
+			break
+		}
+
+		elements = append(elements, content[start:start+end+len(endTag)])
+		content = content[start+end+len(endTag):]
+	}
+
+	return elements
+}
+
+func extractXMLElement(content, path string) string {
+	parts := strings.Split(path, ">")
+	current := content
+
+	for _, tag := range parts {
+		startTag := "<" + tag
+		start := strings.Index(current, startTag)
+		if start == -1 {
+			return ""
+		}
+
+		// Find end of start tag
+		tagEnd := strings.Index(current[start:], ">")
+		if tagEnd == -1 {
+			return ""
+		}
+		valueStart := start + tagEnd + 1
+
+		// Find closing tag
+		endTag := "</" + tag + ">"
+		end := strings.Index(current[valueStart:], endTag)
+		if end == -1 {
+			// Try self-closing or no explicit close
+			return ""
+		}
+
+		current = current[valueStart : valueStart+end]
+	}
+
+	// Clean CDATA
+	current = strings.TrimPrefix(current, "<![CDATA[")
+	current = strings.TrimSuffix(current, "]]>")
+
+	return strings.TrimSpace(current)
+}
+
+func extractXMLAttr(content, tag, attr string) string {
+	startTag := "<" + tag
+	start := strings.Index(content, startTag)
+	if start == -1 {
+		return ""
+	}
+
+	// Find end of tag
+	tagEnd := strings.Index(content[start:], ">")
+	if tagEnd == -1 {
+		return ""
+	}
+
+	tagContent := content[start : start+tagEnd]
+
+	// Find attribute
+	attrStart := strings.Index(tagContent, attr+"=\"")
+	if attrStart == -1 {
+		attrStart = strings.Index(tagContent, attr+"='")
+		if attrStart == -1 {
+			return ""
+		}
+	}
+
+	valueStart := attrStart + len(attr) + 2
+	quote := tagContent[attrStart+len(attr)+1]
+	valueEnd := strings.Index(tagContent[valueStart:], string(quote))
+	if valueEnd == -1 {
+		return ""
+	}
+
+	return tagContent[valueStart : valueStart+valueEnd]
+}

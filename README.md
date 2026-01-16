@@ -1,94 +1,304 @@
-# Personal Site
+# rmendes.net - Personal Site
 
-My personal site.
+A Hugo + Go personal website with full IndieWeb support, forked from [pojntfx/felicitas.pojtinger.com](https://github.com/pojntfx/felicitas.pojtinger.com).
 
-[![hydrun CI](https://github.com/pojntfx/felicitas.pojtinger.com/actions/workflows/hydrun.yaml/badge.svg)](https://github.com/pojntfx/felicitas.pojtinger.com/actions/workflows/hydrun.yaml)
 ![Go Version](https://img.shields.io/badge/go%20version-%3E=1.24-61CFDD.svg)
-[![Go Reference](https://pkg.go.dev/badge/github.com/pojntfx/felicitas.pojtinger.com.svg)](https://pkg.go.dev/github.com/pojntfx/felicitas.pojtinger.com)
 
 ## Overview
 
-This is my personal website, which is also intended to be a more or less generic template to build more personal websites with.
+This is a personal website template featuring:
 
-It provides the following information:
+- **Personal profile** with name, profession, bio, and social links
+- **GitHub activity carousel** showing recent commits across repositories
+- **Project showcase** fetched from GitHub/Forgejo/Codeberg
+- **Starred repositories** section
+- **Blog/Articles** with Giscus comments
+- **Social feeds** (Bluesky, Mastodon)
+- **Livestream status** (Twitch, YouTube)
+- **Full IndieWeb support** (see below)
 
-- Personal details (name, profession, pronouns)
-- Social media details (Bluesky/Twitter (through [nitter](https://nitter.net/))/Instagram/Mastodon, Discord/Matrix/Signal, phone/mail)
-- Latest GitHub commit
-- Livestream (Twitch & YouTube) status
-- Articles with comments
-- Latest toots & tweets
-- Project list (fetched from GitHub and Forgejo/Codeberg)
+## Fork Enhancements
 
-## Installation
+This fork adds several features not present in the upstream:
 
-The web app is available on [GitHub releases](https://github.com/pojntfx/felicitas.pojtinger.com/releases) in the form of a static `.tar.gz` archive; to deploy it, simply upload it to a CDN or copy it to a web server. The release also includes the project list generation tool, API server and proxy. For most users, this shouldn't be necessary though; simply visit the [public deployment](https://felicitas.pojtinger.com/) to access it:
+### GitHub Activity Carousel
 
-[<img src="https://github.com/pojntfx/webnetesctl/raw/main/img/launch.png" width="240">](https://felicitas.pojtinger.com/)
+A dynamic carousel showing recent GitHub activity:
+- Displays commits across all your repositories
+- Shows commit message, repository name, and timestamp
+- Auto-rotates with smooth transitions
+- Loading skeleton prevents layout shifts
 
-## Screenshots
+### OpenGraph Support
 
-Click on an image to see a larger version.
+Enhanced social sharing with proper meta tags:
+- Title, description, and image for all pages
+- Twitter/X card support
+- Configurable default image
 
-<a display="inline" href="./docs/chrome.png?raw=true">
-<img src="./docs/chrome.png" width="45%" alt="Screenshot of the site on Chrome" title="Screenshot of the site on Chrome">
-</a>
+### IndieWeb Integration
 
-<a display="inline" href="./docs/firefox.png?raw=true">
-<img src="./docs/firefox.png" width="45%" alt="Screenshot of the site on Firefox" title="Screenshot of the site on Firefox">
-</a>
+Full IndieWeb protocol support for the open, decentralized social web:
 
-<a display="inline" href="./docs/webkit.png?raw=true">
-<img src="./docs/webkit.png" width="45%" alt="Screenshot of the site on WebKit" title="Screenshot of the site on WebKit">
-</a>
+#### Microformats2
 
-<a display="inline" href="./docs/project-list.png?raw=true">
-<img src="./docs/project-list.png" width="45%" alt="Screenshot of the project list" title="Screenshot of the project list">
-</a>
+Semantic markup for machine-readable content:
+- **h-card**: Author identity on homepage and articles
+- **h-entry**: Individual posts (articles, notes, likes, bookmarks, reposts)
+- **h-feed**: List pages for content discovery
 
-<a display="inline" href="./docs/article-list.png?raw=true">
-<img src="./docs/article-list.png" width="45%" alt="Screenshot of the article list" title="Screenshot of the article list">
-</a>
+#### Webmention
 
-<a display="inline" href="./docs/article.png?raw=true">
-<img src="./docs/article.png" width="45%" alt="Screenshot of an article" title="Screenshot of an article">
-</a>
+Receive and display interactions from across the web:
+- Integration with [webmention.io](https://webmention.io) for receiving webmentions
+- Display likes, reposts, replies, and mentions on articles
+- Cached API responses for performance
 
-<a display="inline" href="./docs/comments.png?raw=true">
-<img src="./docs/comments.png" width="45%" alt="Screenshot of the article comment section" title="Screenshot of the article comment section">
-</a>
+#### IndieAuth
+
+Decentralized authentication:
+- `rel="me"` links for identity verification
+- Authorization and token endpoint discovery
+- Token verification for Micropub/Microsub
+
+#### Micropub
+
+Create content from any Micropub client:
+- Support for notes, articles, likes, bookmarks, and reposts
+- Automatic Hugo content file generation
+- Proper frontmatter and slug generation
+- Token-based authentication
+
+#### Microsub
+
+Feed reader functionality:
+- Channel management (folders/categories)
+- Subscribe to RSS/Atom/JSON feeds
+- Timeline aggregation with read status
+- JF2 format output
+
+### Cloudron Deployment
+
+Optimized for [Cloudron](https://cloudron.io) deployment:
+- Multi-stage Docker build
+- Persistent data handling
+- Environment variable configuration
+- Automatic content preservation across updates
+
+## Configuration
+
+### Environment Variables
+
+Create a `.env` or `env.sh` file with:
+
+```bash
+# GitHub (for projects and activity)
+export FORGE_TOKENS='{"github.com": "your-github-token"}'
+export GITHUB_USERNAME="yourusername"
+export GITHUB_ACTIVITY_LIMIT="5"
+
+# YouTube (optional)
+export YOUTUBE_TOKEN="your-youtube-api-key"
+
+# Bluesky (optional)
+export BLUESKY_IDENTIFIER="you.bsky.social"
+export BLUESKY_APP_PASSWORD="your-app-password"
+
+# Mastodon (optional)
+export MASTODON_ACCESS_TOKEN="your-token"
+export MASTODON_INSTANCE="mastodon.social"
+
+# IndieWeb
+export WEBMENTION_IO_TOKEN="your-webmention-io-token"
+export INDIEAUTH_ME="https://yoursite.com/"
+export INDIEAUTH_TOKEN_ENDPOINT=""  # default: https://tokens.indieauth.com/token
+export SITE_BASE_URL="https://yoursite.com"
+```
+
+### Data Files
+
+Configuration is stored in `data/` YAML files:
+
+- **`person.yaml`**: Name, profession, bio, profile image
+- **`links.yaml`**: Social media links (with `rel="me"` support)
+- **`site.yaml`**: Site title, OpenGraph settings
+- **`forges.yaml`**: GitHub/Forgejo instances for projects
+- **`projects.yaml`**: Manual project definitions
+- **`integrations.yaml`**: Toggle features (Giscus, IndieWeb, etc.)
+
+### IndieWeb Configuration
+
+In `data/integrations.yaml`:
+
+```yaml
+indieweb:
+  enabled: true
+  webmention:
+    enabled: true
+    endpoint: "https://webmention.io/yoursite.com/webmention"
+  indieauth:
+    enabled: true
+    endpoint: "https://indieauth.com/auth"
+    tokenEndpoint: "https://tokens.indieauth.com/token"
+  micropub:
+    enabled: true
+  microsub:
+    enabled: true
+  bridgy:
+    enabled: true
+    mastodon: true
+    bluesky: true
+```
+
+## Development
+
+### Prerequisites
+
+- Go 1.24+
+- Hugo (extended version recommended)
+- Node.js (for SCSS compilation)
+
+### Local Development
+
+```bash
+# Clone the repository
+git clone https://github.com/rmdes/rmdes-static-hugo.git
+cd rmdes-static-hugo
+
+# Install dependencies
+make depend
+
+# Set environment variables (see Configuration above)
+export FORGE_TOKENS='{"github.com": "your-token"}'
+
+# Generate project data
+make generate
+
+# Start development server
+make dev
+```
+
+### Building
+
+```bash
+# Build static site
+make build
+
+# Build all Go binaries
+go build ./...
+
+# Build Docker image
+docker build -t personal-site .
+```
+
+### Project Structure
+
+```
+.
+├── api/                    # Go API handlers
+│   ├── blog/              # Blog feed API
+│   ├── bluesky/           # Bluesky feed
+│   ├── forges/            # GitHub/Forgejo API
+│   ├── indieauth/         # IndieAuth token verification
+│   ├── mastodon/          # Mastodon feed
+│   ├── micropub/          # Micropub endpoint
+│   ├── microsub/          # Microsub endpoint
+│   ├── webmention/        # Webmention.io integration
+│   └── youtube/           # YouTube status
+├── assets/
+│   └── scss/              # Stylesheets
+├── cmd/
+│   ├── ps-api/            # API server
+│   ├── ps-gen-projects/   # Project list generator
+│   ├── ps-gen-starred/    # Starred repos generator
+│   └── ps-proxy/          # Reverse proxy
+├── content/
+│   ├── articles/          # Blog posts
+│   ├── notes/             # Short notes (Micropub)
+│   ├── likes/             # Likes (Micropub)
+│   ├── bookmarks/         # Bookmarks (Micropub)
+│   └── reposts/           # Reposts (Micropub)
+├── data/                  # YAML configuration
+├── layouts/               # Hugo templates
+│   ├── _default/          # Base templates
+│   ├── articles/          # Article templates
+│   ├── notes/             # Note templates
+│   ├── likes/             # Like templates
+│   ├── bookmarks/         # Bookmark templates
+│   ├── reposts/           # Repost templates
+│   └── partials/          # Reusable components
+└── static/                # Static assets
+```
+
+## IndieWeb Setup Guide
+
+### 1. Webmention.io
+
+1. Sign up at [webmention.io](https://webmention.io)
+2. Verify your domain via `rel="me"` link
+3. Copy your API token to `WEBMENTION_IO_TOKEN`
+4. Update `webmention.endpoint` in `data/integrations.yaml`
+
+### 2. IndieAuth
+
+1. Add `rel="me"` links to your social profiles
+2. Ensure your social profiles link back to your site
+3. The default IndieAuth.com endpoints work out of the box
+
+### 3. Micropub Clients
+
+Compatible clients include:
+- [Quill](https://quill.p3k.io) - Web-based
+- [Indigenous](https://indigenous.realize.be/) - iOS/Android
+- [Omnibear](https://omnibear.com/) - Browser extension
+
+### 4. Microsub Readers
+
+Compatible readers include:
+- [Monocle](https://monocle.p3k.io)
+- [Together](https://together.tilde.cafe)
+- [Indigenous](https://indigenous.realize.be/)
+
+### 5. Bridgy (optional)
+
+To syndicate to/from social networks:
+1. Sign up at [brid.gy](https://brid.gy)
+2. Connect your Mastodon/Bluesky accounts
+3. Enable in `data/integrations.yaml`
+
+## API Endpoints
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/forges` | GET | GitHub activity and projects |
+| `/api/bluesky` | GET | Bluesky feed |
+| `/api/mastodon` | GET | Mastodon feed |
+| `/api/youtube` | GET | YouTube live status |
+| `/api/webmentions?target=URL` | GET | Webmentions for a page |
+| `/api/micropub` | GET/POST | Micropub endpoint |
+| `/api/microsub` | GET/POST | Microsub endpoint |
 
 ## Acknowledgements
 
-- [gohugoio/hugo](https://github.com/gohugoio/hugo) provides the static site generator.
-- [zedeus/nitter](https://github.com/zedeus/nitter) provides the Twitter API.
-- [mmcdole/gofeed](https://github.com/mmcdole/gofeed) provides the RSS library for nitter.
-- [google/go-github](https://github.com/google/go-github) provides the GitHub API library.
-- [nicklaw5/helix](https://github.com/nicklaw5/helix) provides the Twitch API library.
-- [googleapis/google-api-go-client](https://github.com/googleapis/google-api-go-client) provides the YouTube API library.
-- [giscus/giscus](https://github.com/giscus/giscus) provides the comment system.
-- The open source [PatternFly design system](https://www.patternfly.org/v4/) provides the components for the project.
+### Upstream
 
-## Contributing
+- [pojntfx/felicitas.pojtinger.com](https://github.com/pojntfx/felicitas.pojtinger.com) - Original project by Felicitas Pojtinger
 
-To contribute, please use the [GitHub flow](https://guides.github.com/introduction/flow/) and follow our [Code of Conduct](./CODE_OF_CONDUCT.md).
+### Libraries & Tools
 
-To build the site locally, run:
+- [gohugoio/hugo](https://github.com/gohugoio/hugo) - Static site generator
+- [google/go-github](https://github.com/google/go-github) - GitHub API
+- [giscus/giscus](https://github.com/giscus/giscus) - Comment system
+- [PatternFly](https://www.patternfly.org/) - Design system
 
-```shell
-$ git clone https://github.com/pojntfx/felicitas.pojtinger.com.git
-$ cd felicitas.pojtinger.com
-$ make depend
-$ export GITHUB_API=https://api.github.com/ GITHUB_TOKEN=your-github-api-token YOUTUBE_TOKEN=your-youtube-api-token TWITCH_CLIENT_ID=your-twitch-client-id TWITCH_CLIENT_SECRET=your-twitch-client-secret MASTODON_SERVER=https://mastodon.social MASTODON_CLIENT_ID=your-mastodon-client-id MASTODON_CLIENT_SECRET=your-mastodon-client-secret MASTODON_ACCESS_TOKEN=your-mastodon-access-token BLUESKY_SERVER=https://bsky.social/ BLUESKY_PASSWORD=your-bluesky-app-password SPOTIFY_CLIENT_ID=your-spotify-client-id SPOTIFY_CLIENT_SECRET=your-spotify-client-secret
-# This is only necessary if you want to use the Spotify integration - adjust your redirect URL accordingly
-$ export SPOTIFY_REFRESH_TOKEN=$(go run ./cmd/ps-spotify-get-refresh-token --client-id=${SPOTIFY_CLIENT_ID} --client-secret=${SPOTIFY_CLIENT_SECRET} --redirect-url='http://localhost:1318/callback')
-# If you want to rebuild the CV, else skip this step
-$ make build-cv
-$ make dev
-```
+### IndieWeb
+
+- [webmention.io](https://webmention.io) - Webmention receiving service
+- [indieauth.com](https://indieauth.com) - IndieAuth provider
+- [brid.gy](https://brid.gy) - Social network bridge
 
 ## License
 
-Personal Site (c) 2025 Felicitas Pojtinger and contributors
+Personal Site (c) 2025 Felicitas Pojtinger, Ricardo Mendes, and contributors
 
 SPDX-License-Identifier: AGPL-3.0

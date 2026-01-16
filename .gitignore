@@ -7,3 +7,6 @@ out
 static/assets
 .env
 .env.*
+/ps-api
+/ps-proxy
+/ps-gen-*

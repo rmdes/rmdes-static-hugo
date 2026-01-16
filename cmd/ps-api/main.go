@@ -14,9 +14,12 @@ import (
 	"github.com/pojntfx/felicitas.pojtinger.com/api/bluesky"
 	"github.com/pojntfx/felicitas.pojtinger.com/api/forges"
 	"github.com/pojntfx/felicitas.pojtinger.com/api/mastodon"
+	"github.com/pojntfx/felicitas.pojtinger.com/api/micropub"
+	"github.com/pojntfx/felicitas.pojtinger.com/api/microsub"
 	"github.com/pojntfx/felicitas.pojtinger.com/api/spotify"
 	"github.com/pojntfx/felicitas.pojtinger.com/api/twitch"
 	"github.com/pojntfx/felicitas.pojtinger.com/api/twitter"
+	"github.com/pojntfx/felicitas.pojtinger.com/api/webmention"
 	"github.com/pojntfx/felicitas.pojtinger.com/api/youtube"
 )
 
@@ -40,6 +43,12 @@ func main() {
 	spotifyClientID := flag.String("spotify-client-id", "", "Spotify API client ID (can also be set using the SPOTIFY_CLIENT_ID env variable)")
 	spotifyClientSecret := flag.String("spotify-client-secret", "", "Spotify API client secret (can also be set using the SPOTIFY_CLIENT_SECRET env variable)")
 	spotifyRefreshToken := flag.String("spotify-refresh-token", "", "Spotify API refresh token (can also be set using the SPOTIFY_REFRESH_TOKEN env variable)")
+
+	webmentionToken := flag.String("webmention-token", "", "webmention.io API token (can also be set using the WEBMENTION_IO_TOKEN env variable)")
+	cacheDir := flag.String("cache-dir", "/app/data", "Directory for cache files (can also be set using the CACHE_DIR env variable)")
+
+	micropubContentDir := flag.String("micropub-content-dir", "/app/data/site/content", "Hugo content directory for Micropub posts (can also be set using the MICROPUB_CONTENT_DIR env variable)")
+	siteBaseURL := flag.String("site-base-url", "https://rmendes.net", "Site base URL for Micropub responses (can also be set using the SITE_BASE_URL env variable)")
 
 	laddr := flag.String("laddr", "localhost:1314", "Listen address for the API")
 
@@ -113,6 +122,28 @@ func main() {
 
 	if *spotifyRefreshToken == "" {
 		*spotifyRefreshToken = os.Getenv("SPOTIFY_REFRESH_TOKEN")
+	}
+
+	if *webmentionToken == "" {
+		*webmentionToken = os.Getenv("WEBMENTION_IO_TOKEN")
+	}
+
+	if *cacheDir == "" {
+		if envCacheDir := os.Getenv("CACHE_DIR"); envCacheDir != "" {
+			*cacheDir = envCacheDir
+		}
+	}
+
+	if *micropubContentDir == "" {
+		if envContentDir := os.Getenv("MICROPUB_CONTENT_DIR"); envContentDir != "" {
+			*micropubContentDir = envContentDir
+		}
+	}
+
+	if *siteBaseURL == "" {
+		if envBaseURL := os.Getenv("SITE_BASE_URL"); envBaseURL != "" {
+			*siteBaseURL = envBaseURL
+		}
 	}
 
 	if rawTTL := os.Getenv("TTL"); rawTTL != "" {
@@ -252,6 +283,52 @@ func main() {
 		rw.Header().Add("Cache-Control", fmt.Sprintf("s-maxage=%v", *ttl))
 
 		blog.BlogFeedHandler(rw, r, "")
+	})
+
+	mux.HandleFunc("/api/webmentions", func(rw http.ResponseWriter, r *http.Request) {
+		defer func() {
+			if err := recover(); err != nil {
+				log.Println("Error occured in Webmention API:", err)
+
+				http.Error(rw, "Error occured in Webmention API", http.StatusInternalServerError)
+
+				return
+			}
+		}()
+
+		rw.Header().Add("Cache-Control", fmt.Sprintf("s-maxage=%v", *ttl))
+
+		webmention.WebmentionHandler(rw, r, *cacheDir, *webmentionToken, *ttl)
+	})
+
+	mux.HandleFunc("/api/micropub", func(rw http.ResponseWriter, r *http.Request) {
+		defer func() {
+			if err := recover(); err != nil {
+				log.Println("Error occured in Micropub API:", err)
+
+				http.Error(rw, "Error occured in Micropub API", http.StatusInternalServerError)
+
+				return
+			}
+		}()
+
+		// No caching for Micropub - it creates content
+		micropub.MicropubHandler(rw, r, *micropubContentDir, *siteBaseURL)
+	})
+
+	mux.HandleFunc("/api/microsub", func(rw http.ResponseWriter, r *http.Request) {
+		defer func() {
+			if err := recover(); err != nil {
+				log.Println("Error occured in Microsub API:", err)
+
+				http.Error(rw, "Error occured in Microsub API", http.StatusInternalServerError)
+
+				return
+			}
+		}()
+
+		// No caching for Microsub - it's personalized
+		microsub.MicrosubHandler(rw, r, *cacheDir)
 	})
 
 	log.Println("API listening on", *laddr)

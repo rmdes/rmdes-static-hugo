@@ -1074,3 +1074,81 @@ a.pf-v6-c-button.pf-m-primary,
     transform: rotate(360deg);
   }
 }
+
+// Webmentions styles for IndieWeb
+.webmentions {
+  margin-top: var(--pf-t--global--spacer--xl);
+  padding: var(--pf-t--global--spacer--lg);
+
+  @extend .pf-v6-c-card;
+  @extend .pf-v6-c-card--transparent;
+
+  &__likes,
+  &__reposts {
+    .webmention-face {
+      border: 2px solid var(--pf-t--global--border--color--default);
+      transition: transform 0.2s ease-in-out;
+
+      &:hover {
+        transform: scale(1.1);
+        z-index: 1;
+      }
+    }
+  }
+
+  &__replies,
+  &__mentions {
+    &__list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+  }
+}
+
+.webmention-reply {
+  padding: var(--pf-t--global--spacer--md);
+  border-left: 3px solid var(--pf-t--global--color--brand--200);
+  border-radius: var(--pf-t--global--border--radius--small);
+
+  @extend .pf-v6-x-u-blur;
+
+  background: color-mix(
+    in srgb,
+    var(--pf-x-base-color) 3%,
+    rgba(255, 255, 255, 0.3)
+  ) !important;
+
+  @media (prefers-color-scheme: dark) {
+    background: color-mix(
+      in srgb,
+      var(--pf-x-base-color) 3%,
+      rgba(41, 41, 41, 0.3)
+    ) !important;
+  }
+
+  &__avatar {
+    flex-shrink: 0;
+  }
+
+  &__content {
+    word-break: break-word;
+    line-height: 1.5;
+  }
+
+  &__name {
+    text-decoration: none;
+
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+
+  &__date {
+    text-decoration: none;
+
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+}

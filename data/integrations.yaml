@@ -1,8 +1,9 @@
 giscus:
+  enabled: false  # Set to true and configure repoID/categoryID from https://giscus.app
   repo: rmdes/rmendes.net
-  repoID: ""
+  repoID: ""  # Get from https://giscus.app after enabling discussions
   category: Announcements
-  categoryID: ""
+  categoryID: ""  # Get from https://giscus.app after enabling discussions
   mapping: pathname
   reactionsEnabled: 1
   emitMetadata: 1
@@ -34,3 +35,28 @@ spotify:
 blog:
   enabled: true
   feedUrl: https://blog.rmendes.net/categories/longform/feed.xml
+
+# IndieWeb configuration
+indieweb:
+  enabled: true
+  # Webmention configuration (via webmention.io)
+  webmention:
+    enabled: true
+    endpoint: "https://webmention.io/rmendes.net/webmention"
+    # token: set via WEBMENTION_IO_TOKEN env var
+  # IndieAuth configuration (via indieauth.com)
+  indieauth:
+    enabled: true
+    endpoint: "https://indieauth.com/auth"
+    tokenEndpoint: "https://tokens.indieauth.com/token"
+  # Micropub configuration
+  micropub:
+    enabled: true
+  # Microsub feed exposure
+  microsub:
+    enabled: true
+  # Bridgy for silo backfeed
+  bridgy:
+    enabled: true
+    mastodon: true
+    bluesky: true

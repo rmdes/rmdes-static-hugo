@@ -15,7 +15,8 @@
     >
       <div class="pf-v6-l-grid pf-m-gutter">
         <div class="pf-v6-l-grid__item pf-m-12-col pf-m-8-col-on-lg">
-          <div class="pf-v6-c-card pf-v6-c-card--full-width">
+          {{/* h-entry microformat for IndieWeb */}}
+          <div class="h-entry pf-v6-c-card pf-v6-c-card--full-width">
             <div
               class="pf-v6-c-card__header pf-v6-u-px-0 pf-v6-u-pt-0 pf-v6-u-pb-sm"
             >
@@ -23,19 +24,19 @@
                 <img
                   src="{{ ((index .Resources 0).Resize `1024x`).Permalink }}"
                   alt="{{ .Params.HeaderAlt }}"
-                  class="pf-v6-u-w-100 pf-v6-u-h-100 pf-v6-x-c-article__header"
+                  class="u-photo pf-v6-u-w-100 pf-v6-u-h-100 pf-v6-x-c-article__header"
                 />
               </div>
             </div>
             <div class="pf-v6-c-card__title">
               <h1
-                class="pf-v6-u-font-size-4xl pf-v6-u-pb-sm pf-v6-c-card__title-text"
+                class="p-name pf-v6-u-font-size-4xl pf-v6-u-pb-sm pf-v6-c-card__title-text"
               >
                 {{ .Title }}
               </h1>
 
               {{ if .Params.Excerpt }}
-                <p>{{ .Params.Excerpt }}</p>
+                <p class="p-summary">{{ .Params.Excerpt }}</p>
               {{ end }}
             </div>
             <div class="pf-v6-c-card__body">
@@ -46,15 +47,19 @@
                   <div
                     class="pf-v6-l-flex pf-m-space-items-sm pf-v6-u-color-200"
                   >
-                    <span
-                      >Originally published on
-                      {{ .Date | time.Format ":date_long" }}</span
-                    >
+                    <span>
+                      Originally published on
+                      <time class="dt-published" datetime="{{ .Date.Format "2006-01-02T15:04:05Z07:00" }}">
+                        {{ .Date | time.Format ":date_long" }}
+                      </time>
+                    </span>
                     <span aria-hidden="true" class="pf-v6-u-color-200">·</span>
-                    <span
-                      >Last updated on
-                      {{ .Params.Updated | time.Format ":date_long" }}</span
-                    >
+                    <span>
+                      Last updated on
+                      <time class="dt-updated" datetime="{{ .Params.Updated }}">
+                        {{ .Params.Updated | time.Format ":date_long" }}
+                      </time>
+                    </span>
                   </div>
                   <div class="pf-v6-c-label-group">
                     <div class="pf-v6-c-label-group__main">
@@ -67,7 +72,7 @@
                           <li class="pf-v6-c-label-group__list-item">
                             <span class="pf-v6-c-label">
                               <span class="pf-v6-c-label__content">
-                                <span class="pf-v6-c-label__text">
+                                <span class="pf-v6-c-label__text p-category">
                                   {{ . }}
                                 </span>
                               </span>
@@ -79,11 +84,19 @@
                   </div>
                 </header>
 
-                <main class="pf-v6-c-page__main pf-v6-c-content">
+                <main class="e-content pf-v6-c-page__main pf-v6-c-content">
                   {{ .Content }}
                 </main>
+
+                {{/* Hidden permalink and author for microformats */}}
+                <a class="u-url" href="{{ .Permalink }}" style="display:none;">Permalink</a>
+                {{ partial "author-hcard" . }}
               </article>
             </div>
+            {{/* Webmentions display */}}
+            {{ partial "webmentions" . }}
+
+            {{ if .Site.Data.integrations.giscus.enabled }}
             <div class="pf-v6-c-card__footer">
               <script
                 src="https://giscus.app/client.js"
@@ -104,6 +117,7 @@
                 giscus.</noscript
               >
             </div>
+            {{ end }}
           </div>
         </div>
         <div

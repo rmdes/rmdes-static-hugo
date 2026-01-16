@@ -1,0 +1,222 @@
+{{/* Webmentions display partial for IndieWeb */}}
+{{ if .Site.Data.integrations.indieweb.webmention.enabled }}
+{{- $uniqueID := "home" -}}
+{{- with .File -}}{{- $uniqueID = .UniqueID -}}{{- end -}}
+<div class="webmentions" id="webmentions-{{ $uniqueID }}">
+  <h3 class="pf-v6-c-title pf-m-lg pf-v6-u-mb-md">Interactions</h3>
+
+  {{/* Likes section */}}
+  <div class="webmentions__likes pf-v6-u-mb-md" style="display: none;">
+    <h4 class="pf-v6-u-font-size-md pf-v6-u-mb-sm">
+      <i class="fas fa-heart" aria-hidden="true"></i> Likes
+    </h4>
+    <div class="webmentions__likes__faces pf-v6-l-flex pf-m-wrap pf-m-gap-xs"></div>
+  </div>
+
+  {{/* Reposts section */}}
+  <div class="webmentions__reposts pf-v6-u-mb-md" style="display: none;">
+    <h4 class="pf-v6-u-font-size-md pf-v6-u-mb-sm">
+      <i class="fas fa-retweet" aria-hidden="true"></i> Reposts
+    </h4>
+    <div class="webmentions__reposts__faces pf-v6-l-flex pf-m-wrap pf-m-gap-xs"></div>
+  </div>
+
+  {{/* Replies section */}}
+  <div class="webmentions__replies pf-v6-u-mb-md" style="display: none;">
+    <h4 class="pf-v6-u-font-size-md pf-v6-u-mb-sm">
+      <i class="fas fa-comments" aria-hidden="true"></i> Comments
+    </h4>
+    <ul class="webmentions__replies__list pf-v6-c-list pf-m-plain"></ul>
+  </div>
+
+  {{/* Mentions section */}}
+  <div class="webmentions__mentions pf-v6-u-mb-md" style="display: none;">
+    <h4 class="pf-v6-u-font-size-md pf-v6-u-mb-sm">
+      <i class="fas fa-at" aria-hidden="true"></i> Mentions
+    </h4>
+    <ul class="webmentions__mentions__list pf-v6-c-list pf-m-plain"></ul>
+  </div>
+
+  {{/* No interactions message */}}
+  <div class="webmentions__empty pf-v6-u-color-200" style="display: none;">
+    No interactions yet. Be the first to mention this page!
+  </div>
+
+  {{/* Loading state */}}
+  <div class="webmentions__loading">
+    <div class="pf-v6-c-skeleton pf-m-text-md pf-v6-u-w-50"></div>
+  </div>
+</div>
+
+{{/* Reply template */}}
+<template id="webmention-reply-template">
+  <li class="webmention-reply h-cite pf-v6-u-mb-md">
+    <div class="pf-v6-l-flex pf-m-align-items-flex-start pf-m-gap-md">
+      <a class="webmention-reply__author p-author h-card" target="_blank" rel="noopener">
+        <img class="webmention-reply__avatar u-photo pf-v6-c-avatar pf-m-md" loading="lazy" alt="" />
+      </a>
+      <div class="pf-v6-u-flex-grow-1">
+        <div class="pf-v6-l-flex pf-m-align-items-center pf-m-gap-sm pf-v6-u-mb-xs">
+          <a class="webmention-reply__name p-name pf-v6-u-font-weight-bold" target="_blank" rel="noopener"></a>
+          <a class="webmention-reply__date u-url pf-v6-u-font-size-sm pf-v6-u-color-200" target="_blank" rel="noopener">
+            <time class="dt-published"></time>
+          </a>
+        </div>
+        <div class="webmention-reply__content p-content"></div>
+      </div>
+    </div>
+  </li>
+</template>
+
+<script type="module">
+  const baseUrl = "{{ .Site.Data.site.opengraph.baseUrl }}";
+  const targetUrl = "{{ .Permalink | default .Site.Data.site.opengraph.baseUrl }}";
+  const containerId = "webmentions-{{ $uniqueID }}";
+  const container = document.getElementById(containerId);
+
+  if (container) {
+    const loadingEl = container.querySelector(".webmentions__loading");
+    const emptyEl = container.querySelector(".webmentions__empty");
+
+    try {
+      const response = await fetch(`${baseUrl}/api/webmentions?target=${encodeURIComponent(targetUrl)}`);
+      if (!response.ok) throw new Error("Failed to fetch webmentions");
+
+      const data = await response.json();
+      let hasInteractions = false;
+
+      // Hide loading
+      if (loadingEl) loadingEl.style.display = "none";
+
+      // Render likes
+      if (data.likes?.length > 0) {
+        hasInteractions = true;
+        const likesContainer = container.querySelector(".webmentions__likes");
+        const facesContainer = likesContainer.querySelector(".webmentions__likes__faces");
+
+        data.likes.forEach(like => {
+          const a = document.createElement("a");
+          a.href = like.author_url || like.source;
+          a.target = "_blank";
+          a.rel = "noopener";
+          a.title = like.author_name || "Someone";
+
+          const img = document.createElement("img");
+          img.src = like.author_photo || "{{ .Site.Data.person.img }}";
+          img.alt = like.author_name || "";
+          img.className = "webmention-face pf-v6-c-avatar pf-m-sm";
+          img.loading = "lazy";
+
+          a.appendChild(img);
+          facesContainer.appendChild(a);
+        });
+
+        likesContainer.style.display = "";
+      }
+
+      // Render reposts
+      if (data.reposts?.length > 0) {
+        hasInteractions = true;
+        const repostsContainer = container.querySelector(".webmentions__reposts");
+        const facesContainer = repostsContainer.querySelector(".webmentions__reposts__faces");
+
+        data.reposts.forEach(repost => {
+          const a = document.createElement("a");
+          a.href = repost.author_url || repost.source;
+          a.target = "_blank";
+          a.rel = "noopener";
+          a.title = repost.author_name || "Someone";
+
+          const img = document.createElement("img");
+          img.src = repost.author_photo || "{{ .Site.Data.person.img }}";
+          img.alt = repost.author_name || "";
+          img.className = "webmention-face pf-v6-c-avatar pf-m-sm";
+          img.loading = "lazy";
+
+          a.appendChild(img);
+          facesContainer.appendChild(a);
+        });
+
+        repostsContainer.style.display = "";
+      }
+
+      // Render replies
+      if (data.replies?.length > 0) {
+        hasInteractions = true;
+        const repliesContainer = container.querySelector(".webmentions__replies");
+        const repliesList = repliesContainer.querySelector(".webmentions__replies__list");
+        const template = document.getElementById("webmention-reply-template");
+
+        data.replies.forEach(reply => {
+          const clone = template.content.cloneNode(true);
+
+          const avatarImg = clone.querySelector(".webmention-reply__avatar");
+          avatarImg.src = reply.author_photo || "{{ .Site.Data.person.img }}";
+          avatarImg.alt = reply.author_name || "";
+
+          const authorLink = clone.querySelector(".webmention-reply__author");
+          authorLink.href = reply.author_url || reply.source;
+
+          const nameEl = clone.querySelector(".webmention-reply__name");
+          nameEl.textContent = reply.author_name || "Anonymous";
+          nameEl.href = reply.author_url || reply.source;
+
+          const contentEl = clone.querySelector(".webmention-reply__content");
+          contentEl.textContent = reply.content || "";
+
+          const dateLink = clone.querySelector(".webmention-reply__date");
+          dateLink.href = reply.source;
+
+          const timeEl = clone.querySelector(".dt-published");
+          if (reply.published) {
+            const date = new Date(reply.published);
+            timeEl.textContent = date.toLocaleDateString("en-US", {
+              year: "numeric",
+              month: "short",
+              day: "numeric"
+            });
+            timeEl.setAttribute("datetime", reply.published);
+          }
+
+          repliesList.appendChild(clone);
+        });
+
+        repliesContainer.style.display = "";
+      }
+
+      // Render mentions
+      if (data.mentions?.length > 0) {
+        hasInteractions = true;
+        const mentionsContainer = container.querySelector(".webmentions__mentions");
+        const mentionsList = mentionsContainer.querySelector(".webmentions__mentions__list");
+
+        data.mentions.forEach(mention => {
+          const li = document.createElement("li");
+          li.className = "pf-v6-u-mb-sm";
+
+          const a = document.createElement("a");
+          a.href = mention.source;
+          a.target = "_blank";
+          a.rel = "noopener";
+          a.className = "pf-v6-u-color-100";
+          a.textContent = (mention.author_name || "Someone") + " mentioned this";
+
+          li.appendChild(a);
+          mentionsList.appendChild(li);
+        });
+
+        mentionsContainer.style.display = "";
+      }
+
+      // Show empty state if no interactions
+      if (!hasInteractions && emptyEl) {
+        emptyEl.style.display = "";
+      }
+
+    } catch (error) {
+      console.error("Failed to load webmentions:", error);
+      if (loadingEl) loadingEl.style.display = "none";
+    }
+  }
+</script>
+{{ end }}

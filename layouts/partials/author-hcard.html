@@ -1,0 +1,8 @@
+{{/* Author h-card for IndieWeb microformats */}}
+{{/* This partial embeds author information within h-entry posts */}}
+<div class="p-author h-card" style="display:none;">
+  <img class="u-photo" src="{{ .Site.Data.person.img }}" alt="{{ .Site.Data.person.name }}" />
+  <a class="p-name u-url" href="{{ .Site.Data.site.opengraph.baseUrl }}">
+    {{ .Site.Data.person.name }}
+  </a>
+</div>
