@@ -14,6 +14,16 @@ const (
 	PostTypeReply    PostType = "reply"
 )
 
+// Visibility represents post visibility level
+type Visibility string
+
+const (
+	VisibilityPublic   Visibility = "public"   // Visible to everyone
+	VisibilityUnlisted Visibility = "unlisted" // Visible but not in public timelines
+	VisibilityPrivate  Visibility = "private"  // Followers only
+	VisibilityDirect   Visibility = "direct"   // Direct message to mentioned users
+)
+
 // Post represents content to be syndicated
 type Post struct {
 	// Content is the main text content
@@ -39,6 +49,18 @@ type Post struct {
 
 	// Language is the ISO 639-1 language code
 	Language string
+
+	// Visibility controls who can see the post (Mastodon-specific)
+	// Values: public, unlisted, private, direct
+	Visibility Visibility
+
+	// ContentWarning is the spoiler text / content warning message
+	ContentWarning string
+
+	// Sensitive marks the post as containing sensitive content
+	// On Mastodon: hides media behind a warning
+	// On Bluesky: applies content labels
+	Sensitive bool
 }
 
 // Image represents an image attachment

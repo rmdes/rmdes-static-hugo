@@ -34,7 +34,7 @@ spotify:
   username: 21gkc644ixi3ce3qyqqkvvmy
 blog:
   enabled: true
-  feedUrl: https://blog.rmendes.net/categories/longform/feed.xml
+  feedUrl: https://rss.rmendes.net/i/?a=rss&user=admin&token=rmdes&hours=168
 
 # IndieWeb configuration
 indieweb:

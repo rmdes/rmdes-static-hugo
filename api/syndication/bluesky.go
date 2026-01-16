@@ -59,6 +59,42 @@ func (b *BlueskySyndicator) Platform() string {
 	return "bluesky"
 }
 
+// applySelfLabels applies content warning labels to a Bluesky post
+func (b *BlueskySyndicator) applySelfLabels(feedPost *bsky.FeedPost, post *Post) {
+	if !post.Sensitive && post.ContentWarning == "" {
+		return
+	}
+
+	var labels []*atproto.LabelDefs_SelfLabel
+
+	// Check content warning text for known label keywords
+	cwLower := strings.ToLower(post.ContentWarning)
+
+	// Map common content warning phrases to Bluesky labels
+	switch {
+	case strings.Contains(cwLower, "porn") || strings.Contains(cwLower, "explicit"):
+		labels = append(labels, &atproto.LabelDefs_SelfLabel{Val: "porn"})
+	case strings.Contains(cwLower, "sexual") || strings.Contains(cwLower, "nsfw"):
+		labels = append(labels, &atproto.LabelDefs_SelfLabel{Val: "sexual"})
+	case strings.Contains(cwLower, "nude") || strings.Contains(cwLower, "nudity"):
+		labels = append(labels, &atproto.LabelDefs_SelfLabel{Val: "nudity"})
+	case strings.Contains(cwLower, "gore") || strings.Contains(cwLower, "violence") ||
+		strings.Contains(cwLower, "graphic") || strings.Contains(cwLower, "blood"):
+		labels = append(labels, &atproto.LabelDefs_SelfLabel{Val: "graphic-media"})
+	case post.Sensitive:
+		// Generic sensitive content - use graphic-media as catch-all
+		labels = append(labels, &atproto.LabelDefs_SelfLabel{Val: "graphic-media"})
+	}
+
+	if len(labels) > 0 {
+		feedPost.Labels = &bsky.FeedPost_Labels{
+			LabelDefs_SelfLabels: &atproto.LabelDefs_SelfLabels{
+				Values: labels,
+			},
+		}
+	}
+}
+
 // authorize authenticates with Bluesky and stores the session
 func (b *BlueskySyndicator) authorize(ctx context.Context) error {
 	if b.authorized {
@@ -111,6 +147,7 @@ func (b *BlueskySyndicator) Post(ctx context.Context, post *Post) (*SyndicationR
 	if post.Language != "" {
 		feedPost.Langs = []string{post.Language}
 	}
+	b.applySelfLabels(feedPost, post)
 
 	return b.createRecord(ctx, feedPost)
 }
@@ -156,6 +193,7 @@ func (b *BlueskySyndicator) PostWithLinkCard(ctx context.Context, post *Post, ca
 	if post.Language != "" {
 		feedPost.Langs = []string{post.Language}
 	}
+	b.applySelfLabels(feedPost, post)
 
 	return b.createRecord(ctx, feedPost)
 }
@@ -203,6 +241,7 @@ func (b *BlueskySyndicator) PostWithImages(ctx context.Context, post *Post) (*Sy
 	if post.Language != "" {
 		feedPost.Langs = []string{post.Language}
 	}
+	b.applySelfLabels(feedPost, post)
 
 	return b.createRecord(ctx, feedPost)
 }
@@ -245,6 +284,10 @@ func (b *BlueskySyndicator) PostThread(ctx context.Context, post *Post) (*Syndic
 
 		if post.Language != "" {
 			feedPost.Langs = []string{post.Language}
+		}
+		// Only apply content warning to first post in thread
+		if i == 0 {
+			b.applySelfLabels(feedPost, post)
 		}
 
 		// Add reply reference for thread continuation

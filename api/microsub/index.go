@@ -214,6 +214,13 @@ func handlePost(rw http.ResponseWriter, r *http.Request, tokenResp *indieauth.To
 		handlePreview(rw, r)
 	case "timeline":
 		handleMarkRead(rw, r)
+	case "subscribe":
+		// Subscribe helper: discovers feed and subscribes in one step
+		if !indieauth.HasScope(tokenResp, "follow") {
+			http.Error(rw, `{"error": "insufficient_scope"}`, http.StatusForbidden)
+			return
+		}
+		handleSubscribe(rw, r)
 	default:
 		http.Error(rw, `{"error": "invalid_action"}`, http.StatusBadRequest)
 	}
@@ -370,15 +377,384 @@ func handleSearch(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Simple search - just return the query as a potential feed URL
-	results := []Feed{
-		{Type: "feed", URL: query},
-	}
+	// Discover feeds from the URL
+	feeds := discoverFeeds(query)
 
 	response := map[string]interface{}{
-		"results": results,
+		"results": feeds,
 	}
 	json.NewEncoder(rw).Encode(response)
+}
+
+// handleSubscribe discovers a feed from a URL and subscribes to it in one action
+func handleSubscribe(rw http.ResponseWriter, r *http.Request) {
+	url := r.FormValue("url")
+	channel := r.FormValue("channel")
+	if channel == "" {
+		channel = "default"
+	}
+
+	if url == "" {
+		http.Error(rw, `{"error": "url_required"}`, http.StatusBadRequest)
+		return
+	}
+
+	// Discover feeds from the URL
+	feeds := discoverFeeds(url)
+	if len(feeds) == 0 {
+		http.Error(rw, `{"error": "no_feed_found"}`, http.StatusNotFound)
+		return
+	}
+
+	// Use the first discovered feed
+	discoveredFeed := feeds[0]
+
+	dataLock.Lock()
+	defer dataLock.Unlock()
+
+	// Check if channel exists
+	channelExists := false
+	for _, ch := range data.Channels {
+		if ch.UID == channel {
+			channelExists = true
+			break
+		}
+	}
+	if !channelExists {
+		http.Error(rw, `{"error": "channel_not_found"}`, http.StatusBadRequest)
+		return
+	}
+
+	// Check if already subscribed
+	for _, feed := range data.Subscriptions[channel] {
+		if feed.URL == discoveredFeed.URL {
+			// Already subscribed, return existing
+			json.NewEncoder(rw).Encode(map[string]interface{}{
+				"type":       "feed",
+				"url":        feed.URL,
+				"name":       feed.Name,
+				"channel":    channel,
+				"subscribed": true,
+				"already":    true,
+			})
+			return
+		}
+	}
+
+	// Add new subscription
+	newFeed := Feed{
+		Type: "feed",
+		URL:  discoveredFeed.URL,
+		Name: discoveredFeed.Name,
+	}
+
+	// If no name from discovery, try to get it from preview
+	if newFeed.Name == "" {
+		items, err := fetchFeed(newFeed.URL)
+		if err == nil && len(items) > 0 && items[0].Author != nil {
+			newFeed.Name = items[0].Author.Name
+		}
+	}
+
+	data.Subscriptions[channel] = append(data.Subscriptions[channel], newFeed)
+	if err := saveDataLocked(); err != nil {
+		http.Error(rw, `{"error": "save_failed"}`, http.StatusInternalServerError)
+		return
+	}
+
+	// Return success with subscription details
+	json.NewEncoder(rw).Encode(map[string]interface{}{
+		"type":              "feed",
+		"url":               newFeed.URL,
+		"name":              newFeed.Name,
+		"channel":           channel,
+		"subscribed":        true,
+		"discovered_from":   url,
+		"all_feeds_found":   len(feeds),
+	})
+}
+
+// discoverFeeds attempts to find RSS/Atom/JSON feeds from a URL
+func discoverFeeds(url string) []Feed {
+	var feeds []Feed
+
+	// First, try to fetch the URL and look for feed links
+	resp, err := http.Get(url)
+	if err != nil {
+		// Fall back to returning the URL as-is
+		return []Feed{{Type: "feed", URL: url}}
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return []Feed{{Type: "feed", URL: url}}
+	}
+
+	content := string(body)
+	contentType := resp.Header.Get("Content-Type")
+
+	// Check if this is already a feed
+	if strings.Contains(contentType, "xml") || strings.Contains(contentType, "rss") ||
+		strings.Contains(contentType, "atom") || strings.Contains(contentType, "json") {
+		// This URL is itself a feed
+		feedName := extractFeedTitle(content)
+		return []Feed{{Type: "feed", URL: url, Name: feedName}}
+	}
+
+	// If JSON, check for JSON Feed format
+	if strings.HasPrefix(strings.TrimSpace(content), "{") {
+		var jsonFeed struct {
+			Version string `json:"version"`
+			Title   string `json:"title"`
+		}
+		if json.Unmarshal(body, &jsonFeed) == nil && strings.Contains(jsonFeed.Version, "jsonfeed") {
+			return []Feed{{Type: "feed", URL: url, Name: jsonFeed.Title}}
+		}
+	}
+
+	// Look for <link> tags pointing to feeds
+	feeds = append(feeds, extractFeedLinks(content, url)...)
+
+	// If no feeds found from link tags, try common feed paths
+	if len(feeds) == 0 {
+		feeds = tryCommonFeedPaths(url)
+	}
+
+	// If still no feeds found, return the original URL
+	if len(feeds) == 0 {
+		return []Feed{{Type: "feed", URL: url}}
+	}
+
+	return feeds
+}
+
+// extractFeedLinks extracts feed URLs from HTML <link> tags
+func extractFeedLinks(html, baseURL string) []Feed {
+	var feeds []Feed
+
+	// Parse base URL for resolving relative links
+	base, err := parseURL(baseURL)
+	if err != nil {
+		return feeds
+	}
+
+	// Look for link tags with feed types
+	// <link rel="alternate" type="application/rss+xml" href="..." title="...">
+	linkPattern := `<link[^>]+>`
+	for _, match := range findAllStrings(html, linkPattern) {
+		rel := extractAttr(match, "rel")
+		linkType := extractAttr(match, "type")
+		href := extractAttr(match, "href")
+		title := extractAttr(match, "title")
+
+		// Check if this is a feed link
+		if !strings.Contains(rel, "alternate") {
+			continue
+		}
+
+		isFeed := strings.Contains(linkType, "rss") ||
+			strings.Contains(linkType, "atom") ||
+			strings.Contains(linkType, "feed") ||
+			strings.Contains(linkType, "json")
+
+		if !isFeed || href == "" {
+			continue
+		}
+
+		// Resolve relative URL
+		feedURL := resolveURL(base, href)
+		if feedURL == "" {
+			continue
+		}
+
+		feeds = append(feeds, Feed{
+			Type: "feed",
+			URL:  feedURL,
+			Name: title,
+		})
+	}
+
+	return feeds
+}
+
+// tryCommonFeedPaths tries common feed URL patterns
+func tryCommonFeedPaths(baseURL string) []Feed {
+	var feeds []Feed
+
+	base, err := parseURL(baseURL)
+	if err != nil {
+		return feeds
+	}
+
+	// Common feed paths to try
+	commonPaths := []string{
+		"/feed",
+		"/feed/",
+		"/feed.xml",
+		"/rss",
+		"/rss.xml",
+		"/atom.xml",
+		"/index.xml",
+		"/feed/atom",
+		"/feed/rss",
+		"/feeds/posts/default",
+		"/.rss",
+		"/blog/feed",
+		"/blog/rss",
+		"/blog/index.xml",
+	}
+
+	client := &http.Client{
+		Timeout: 5 * time.Second,
+		CheckRedirect: func(req *http.Request, via []*http.Request) error {
+			if len(via) >= 3 {
+				return http.ErrUseLastResponse
+			}
+			return nil
+		},
+	}
+
+	for _, path := range commonPaths {
+		testURL := base.Scheme + "://" + base.Host + path
+		resp, err := client.Head(testURL)
+		if err != nil {
+			continue
+		}
+		resp.Body.Close()
+
+		if resp.StatusCode == http.StatusOK {
+			contentType := resp.Header.Get("Content-Type")
+			if strings.Contains(contentType, "xml") ||
+				strings.Contains(contentType, "rss") ||
+				strings.Contains(contentType, "atom") ||
+				strings.Contains(contentType, "json") {
+				feeds = append(feeds, Feed{
+					Type: "feed",
+					URL:  testURL,
+				})
+				// Return first found feed
+				break
+			}
+		}
+	}
+
+	return feeds
+}
+
+// extractFeedTitle extracts the title from RSS/Atom/JSON feed content
+func extractFeedTitle(content string) string {
+	// Try JSON Feed first
+	if strings.HasPrefix(strings.TrimSpace(content), "{") {
+		var jsonFeed struct {
+			Title string `json:"title"`
+		}
+		if json.Unmarshal([]byte(content), &jsonFeed) == nil && jsonFeed.Title != "" {
+			return jsonFeed.Title
+		}
+	}
+
+	// Try to extract <title> from XML
+	title := extractXMLElement(content, "title")
+	if title != "" {
+		return title
+	}
+
+	// Try channel > title for RSS
+	title = extractXMLElement(content, "channel>title")
+	return title
+}
+
+// Helper to parse URL
+func parseURL(urlStr string) (*struct{ Scheme, Host, Path string }, error) {
+	// Simple URL parsing
+	if !strings.HasPrefix(urlStr, "http") {
+		urlStr = "https://" + urlStr
+	}
+
+	parts := strings.SplitN(strings.TrimPrefix(strings.TrimPrefix(urlStr, "https://"), "http://"), "/", 2)
+	scheme := "https"
+	if strings.HasPrefix(urlStr, "http://") {
+		scheme = "http"
+	}
+
+	result := &struct{ Scheme, Host, Path string }{
+		Scheme: scheme,
+		Host:   parts[0],
+		Path:   "/",
+	}
+	if len(parts) > 1 {
+		result.Path = "/" + parts[1]
+	}
+	return result, nil
+}
+
+// resolveURL resolves a relative URL against a base
+func resolveURL(base *struct{ Scheme, Host, Path string }, href string) string {
+	if strings.HasPrefix(href, "http://") || strings.HasPrefix(href, "https://") {
+		return href
+	}
+	if strings.HasPrefix(href, "//") {
+		return base.Scheme + ":" + href
+	}
+	if strings.HasPrefix(href, "/") {
+		return base.Scheme + "://" + base.Host + href
+	}
+	// Relative path
+	return base.Scheme + "://" + base.Host + "/" + href
+}
+
+// findAllStrings finds all matches of a simple pattern in content
+func findAllStrings(content, pattern string) []string {
+	var results []string
+
+	// Simple pattern matching for <link...>
+	if pattern == `<link[^>]+>` {
+		lower := strings.ToLower(content)
+		for {
+			start := strings.Index(lower, "<link")
+			if start == -1 {
+				break
+			}
+			end := strings.Index(lower[start:], ">")
+			if end == -1 {
+				break
+			}
+			results = append(results, content[start:start+end+1])
+			content = content[start+end+1:]
+			lower = lower[start+end+1:]
+		}
+	}
+
+	return results
+}
+
+// extractAttr extracts an attribute value from an HTML tag
+func extractAttr(tag, attr string) string {
+	lower := strings.ToLower(tag)
+	attrLower := strings.ToLower(attr)
+
+	// Try double quotes
+	start := strings.Index(lower, attrLower+"=\"")
+	if start != -1 {
+		valueStart := start + len(attr) + 2
+		end := strings.Index(tag[valueStart:], "\"")
+		if end != -1 {
+			return tag[valueStart : valueStart+end]
+		}
+	}
+
+	// Try single quotes
+	start = strings.Index(lower, attrLower+"='")
+	if start != -1 {
+		valueStart := start + len(attr) + 2
+		end := strings.Index(tag[valueStart:], "'")
+		if end != -1 {
+			return tag[valueStart : valueStart+end]
+		}
+	}
+
+	return ""
 }
 
 func handlePreview(rw http.ResponseWriter, r *http.Request) {

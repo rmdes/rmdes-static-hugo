@@ -48,18 +48,43 @@ func (m *MastodonSyndicator) Platform() string {
 	return "mastodon"
 }
 
+// getVisibility converts our Visibility type to mastodon.Visibility
+func (m *MastodonSyndicator) getVisibility(v Visibility) string {
+	switch v {
+	case VisibilityUnlisted:
+		return mastodon.VisibilityUnlisted
+	case VisibilityPrivate:
+		return mastodon.VisibilityFollowersOnly
+	case VisibilityDirect:
+		return mastodon.VisibilityDirectMessage
+	default:
+		return mastodon.VisibilityPublic
+	}
+}
+
+// applyContentWarning applies content warning and sensitive settings to a toot
+func (m *MastodonSyndicator) applyContentWarning(toot *mastodon.Toot, post *Post) {
+	if post.ContentWarning != "" {
+		toot.SpoilerText = post.ContentWarning
+	}
+	if post.Sensitive {
+		toot.Sensitive = true
+	}
+}
+
 // Post creates a simple text post
 func (m *MastodonSyndicator) Post(ctx context.Context, post *Post) (*SyndicationResult, error) {
 	content := m.formatContent(post)
 
 	toot := &mastodon.Toot{
 		Status:     content,
-		Visibility: mastodon.VisibilityPublic,
+		Visibility: m.getVisibility(post.Visibility),
 	}
 
 	if post.Language != "" {
 		toot.Language = post.Language
 	}
+	m.applyContentWarning(toot, post)
 
 	status, err := m.client.PostStatus(ctx, toot)
 	if err != nil {
@@ -90,12 +115,13 @@ func (m *MastodonSyndicator) PostWithLinkCard(ctx context.Context, post *Post, c
 
 	toot := &mastodon.Toot{
 		Status:     content,
-		Visibility: mastodon.VisibilityPublic,
+		Visibility: m.getVisibility(post.Visibility),
 	}
 
 	if post.Language != "" {
 		toot.Language = post.Language
 	}
+	m.applyContentWarning(toot, post)
 
 	status, err := m.client.PostStatus(ctx, toot)
 	if err != nil {
@@ -136,13 +162,14 @@ func (m *MastodonSyndicator) PostWithImages(ctx context.Context, post *Post) (*S
 
 	toot := &mastodon.Toot{
 		Status:     content,
-		Visibility: mastodon.VisibilityPublic,
+		Visibility: m.getVisibility(post.Visibility),
 		MediaIDs:   mediaIDs,
 	}
 
 	if post.Language != "" {
 		toot.Language = post.Language
 	}
+	m.applyContentWarning(toot, post)
 
 	status, err := m.client.PostStatus(ctx, toot)
 	if err != nil {
@@ -180,11 +207,15 @@ func (m *MastodonSyndicator) PostThread(ctx context.Context, post *Post) (*Syndi
 	for i, part := range parts {
 		toot := &mastodon.Toot{
 			Status:     part,
-			Visibility: mastodon.VisibilityPublic,
+			Visibility: m.getVisibility(post.Visibility),
 		}
 
 		if post.Language != "" {
 			toot.Language = post.Language
+		}
+		// Only apply content warning to first post in thread
+		if i == 0 {
+			m.applyContentWarning(toot, post)
 		}
 
 		if i > 0 {
