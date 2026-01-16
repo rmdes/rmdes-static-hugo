@@ -68,15 +68,15 @@
                         role="list"
                         aria-label="Keywords"
                       >
-                        {{ range first 3 .Keywords }}
+                        {{ range .Keywords }}
                           <li class="pf-v6-c-label-group__list-item">
-                            <span class="pf-v6-c-label">
+                            <a href="{{ "/tags/" | relURL }}{{ . | urlize }}/" class="p-category pf-v6-c-label pf-m-outline">
                               <span class="pf-v6-c-label__content">
-                                <span class="pf-v6-c-label__text p-category">
+                                <span class="pf-v6-c-label__text">
                                   {{ . }}
                                 </span>
                               </span>
-                            </span>
+                            </a>
                           </li>
                         {{ end }}
                       </ul>
@@ -87,6 +87,25 @@
                 <main class="e-content pf-v6-c-page__main pf-v6-c-content">
                   {{ .Content }}
                 </main>
+
+                {{/* Syndication links for POSSE copies */}}
+                {{ with .Params.syndication }}
+                  <footer class="pf-v6-u-mt-lg pf-v6-u-pt-md" style="border-top: 1px solid var(--pf-t--global--border--color--default);">
+                    <p class="pf-v6-u-font-size-sm pf-v6-u-color-200 pf-v6-u-mb-sm">
+                      <i class="fas fa-share-alt pf-v6-u-mr-xs" aria-hidden="true"></i>
+                      Also published on:
+                    </p>
+                    <ul class="pf-v6-c-list pf-m-inline">
+                      {{ range . }}
+                        <li>
+                          <a class="u-syndication" href="{{ .url }}" rel="syndication" target="_blank">
+                            {{ if .name }}{{ .name }}{{ else }}{{ .url | truncate 40 }}{{ end }}
+                          </a>
+                        </li>
+                      {{ end }}
+                    </ul>
+                  </footer>
+                {{ end }}
 
                 {{/* Hidden permalink and author for microformats */}}
                 <a class="u-url" href="{{ .Permalink }}" style="display:none;">Permalink</a>
