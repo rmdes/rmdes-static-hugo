@@ -109,6 +109,12 @@ func (w *compressedResponseWriter) Write(b []byte) (int, error) {
 // compressionMiddleware adds gzip/brotli compression
 func compressionMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Skip compression for API requests (they're proxied and handle their own compression)
+		if strings.HasPrefix(r.URL.Path, "/api/") {
+			next.ServeHTTP(w, r)
+			return
+		}
+
 		// Skip compression for already compressed formats
 		ext := strings.ToLower(filepath.Ext(r.URL.Path))
 		skipCompression := map[string]bool{
