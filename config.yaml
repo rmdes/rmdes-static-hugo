@@ -8,3 +8,4 @@ markup:
   goldmark:
     renderer:
       hardWraps: true
+      unsafe: true
