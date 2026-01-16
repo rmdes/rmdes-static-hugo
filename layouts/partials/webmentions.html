@@ -70,7 +70,9 @@
 
 <script type="module">
   const baseUrl = "{{ .Site.Data.site.opengraph.baseUrl }}";
-  const targetUrl = "{{ .Permalink | default .Site.Data.site.opengraph.baseUrl }}";
+  // Construct full URL: baseUrl + relative permalink
+  // For homepage, RelPermalink is "/" so this becomes baseUrl + "/" = "https://rmendes.net/"
+  const targetUrl = "{{ .Site.Data.site.opengraph.baseUrl }}{{ .RelPermalink }}";
   const containerId = "webmentions-{{ $uniqueID }}";
   const container = document.getElementById(containerId);
 
