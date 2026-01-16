@@ -259,7 +259,59 @@ func createSyndicationPost(req MicropubRequest, postType, postURL string) *syndi
 		}
 	}
 
+	// Extract visibility - check both "visibility" and "post-status"
+	// Mastodon visibility levels: public, unlisted, private, direct
+	if vis, ok := props["visibility"]; ok {
+		if visArr, ok := vis.([]interface{}); ok && len(visArr) > 0 {
+			if s, ok := visArr[0].(string); ok {
+				post.Visibility = mapVisibility(s)
+			}
+		}
+	} else if status, ok := props["post-status"]; ok {
+		if statusArr, ok := status.([]interface{}); ok && len(statusArr) > 0 {
+			if s, ok := statusArr[0].(string); ok {
+				post.Visibility = mapVisibility(s)
+			}
+		}
+	}
+
+	// Extract content warning / spoiler text
+	if spoiler, ok := props["spoiler-text"]; ok {
+		if spoilerArr, ok := spoiler.([]interface{}); ok && len(spoilerArr) > 0 {
+			if s, ok := spoilerArr[0].(string); ok {
+				post.ContentWarning = s
+			}
+		}
+	}
+
+	// Check for sensitive flag
+	if sensitive, ok := props["sensitive"]; ok {
+		if sensitiveArr, ok := sensitive.([]interface{}); ok && len(sensitiveArr) > 0 {
+			switch v := sensitiveArr[0].(type) {
+			case bool:
+				post.Sensitive = v
+			case string:
+				post.Sensitive = v == "true" || v == "1" || v == "yes"
+			}
+		}
+	}
+
 	return post
+}
+
+// mapVisibility maps various visibility values to syndication.Visibility
+func mapVisibility(v string) syndication.Visibility {
+	v = strings.ToLower(strings.TrimSpace(v))
+	switch v {
+	case "unlisted":
+		return syndication.VisibilityUnlisted
+	case "private", "followers", "followers-only":
+		return syndication.VisibilityPrivate
+	case "direct", "dm":
+		return syndication.VisibilityDirect
+	default:
+		return syndication.VisibilityPublic
+	}
 }
 
 // appendSyndicationToFrontmatter adds syndication URLs to a post's frontmatter
@@ -383,6 +435,10 @@ func formToMicropub(form url.Values) MicropubRequest {
 		"photo[]":           "photo",
 		"mp-syndicate-to":   "mp-syndicate-to",
 		"mp-syndicate-to[]": "mp-syndicate-to",
+		"visibility":        "visibility",
+		"post-status":       "post-status",
+		"spoiler-text":      "spoiler-text",
+		"sensitive":         "sensitive",
 	}
 
 	for formKey, propKey := range fieldMappings {
