@@ -1,0 +1,69 @@
+# Environment Variables for Local Development
+# Copy this file to .env and fill in your values
+
+# =============================================================================
+# GitHub (required for projects and activity carousel)
+# =============================================================================
+# Create a token at: https://github.com/settings/tokens
+# Needs: read:user, repo (for private repos) or public_repo (for public only)
+export FORGE_TOKENS='{"github.com": "ghp_your_token_here"}'
+
+# Your GitHub username (for starred repos)
+export GITHUB_USERNAME="yourusername"
+
+# Number of activities to show in carousel (1-10, default: 5)
+export GITHUB_ACTIVITY_LIMIT="5"
+
+# =============================================================================
+# Bluesky (optional - for social feed)
+# =============================================================================
+# Your Bluesky handle
+export BLUESKY_SERVER=https://bsky.social/
+# Create app password at: https://bsky.app/settings/app-passwords
+export BLUESKY_PASSWORD=xxxx-xxxx-xxxx-xxxx
+
+# =============================================================================
+# Mastodon (optional - for social feed)
+# =============================================================================
+# Create app at: https://your.instance/settings/applications
+export MASTODON_SERVER=https://mastodon.social
+export MASTODON_CLIENT_ID=
+export MASTODON_CLIENT_SECRET=
+export MASTODON_ACCESS_TOKEN=
+
+# =============================================================================
+# YouTube (optional - for livestream status)
+# =============================================================================
+# Get API key at: https://console.cloud.google.com/apis/credentials
+export YOUTUBE_TOKEN=
+
+# =============================================================================
+# Spotify (optional - for now playing status)
+# =============================================================================
+# Create app at: https://developer.spotify.com/dashboard
+export SPOTIFY_CLIENT_ID=
+export SPOTIFY_CLIENT_SECRET=
+export SPOTIFY_REFRESH_TOKEN=
+
+# =============================================================================
+# Twitch (optional - for livestream status)
+# =============================================================================
+# Create app at: https://dev.twitch.tv/console/apps
+export TWITCH_CLIENT_ID=
+export TWITCH_CLIENT_SECRET=
+
+# =============================================================================
+# IndieWeb (optional - for webmentions, micropub, microsub)
+# =============================================================================
+# Webmention.io token for receiving webmentions
+# Sign up and get token at: https://webmention.io/settings
+export WEBMENTION_IO_TOKEN=
+
+# Your site's identity URL (your homepage)
+export INDIEAUTH_ME="https://yoursite.com/"
+
+# IndieAuth token endpoint (leave empty for default: https://tokens.indieauth.com/token)
+export INDIEAUTH_TOKEN_ENDPOINT=
+
+# Site base URL for Micropub responses
+export SITE_BASE_URL="https://yoursite.com"
