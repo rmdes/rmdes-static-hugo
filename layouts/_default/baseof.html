@@ -222,19 +222,6 @@
                   >{{ .title }}</a
                 >
               {{ end }}
-
-              {{/* Stream status - desktop only */}}
-              {{ if .Site.Data.integrations.youtube.enabled }}
-                <div class="pf-v6-u-ml-md pf-v6-x-c-streamstatus--desktop">
-                  {{ partial "streamstatus" (dict "ID" "youtubestatus-desktop" "Platform" "youtube" "Username" .Site.Data.integrations.youtube.username "BaseURL" .Site.BaseURL ) }}
-                </div>
-              {{ end }}
-
-              {{ if .Site.Data.integrations.twitch.enabled }}
-                <div class="pf-v6-u-ml-md pf-v6-x-c-streamstatus--desktop">
-                  {{ partial "streamstatus" (dict "ID" "twitchstatus-desktop" "Platform" "twitch" "Username" .Site.Data.integrations.twitch.username "BaseURL" .Site.BaseURL ) }}
-                </div>
-              {{ end }}
             </nav>
 
             {{/* Mobile hamburger menu toggle */}}

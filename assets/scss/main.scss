@@ -1345,13 +1345,17 @@ a.pf-v6-c-button.pf-m-primary,
 // Stream Status in Homepage Sidebar
 // =============================================================================
 
-// Stream status on homepage - always visible, stacked on mobile
+// Stream status on homepage - mobile only (desktop shows in header)
 .pf-v6-x-c-streamstatus--homepage {
-  display: flex;
+  display: none; // Hidden by default (desktop)
   flex-direction: column;
   align-items: center;
   gap: var(--pf-t--global--spacer--sm);
   padding: var(--pf-t--global--spacer--md) 0;
+
+  @media screen and (max-width: $mobile-breakpoint) {
+    display: flex; // Show on mobile
+  }
 }
 
 // =============================================================================
