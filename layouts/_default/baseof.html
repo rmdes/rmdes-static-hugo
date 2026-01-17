@@ -65,7 +65,7 @@
     />
     <meta
       name="copyright"
-      content="© {{ now.Year }} {{ .Site.Data.site.author }}"
+      content="&copy; {{ now.Year }} {{ .Site.Data.site.author }}"
     />
 
     {{ partial "opengraph" . }}
@@ -181,11 +181,11 @@
 
       {{ block "header" . }}
         <header
-          class="pf-v6-c-page__header pf-v6-c-page__header--max-width pf-v6-x-u-blur pf-v6-c-page__header--overlay pf-v6-u-box-shadow-sm pf-v6-x-u-white-space-nowrap pf-v6-x-u-overflow-x-auto"
+          class="pf-v6-c-page__header pf-v6-c-page__header--max-width pf-v6-x-u-blur pf-v6-c-page__header--overlay pf-v6-u-box-shadow-sm"
         >
           <div class="pf-v6-c-page__header__content--max-width">
             <a
-              class="pf-v6-u-display-flex pf-v6-u-align-items-center pf-v6-u-justify-content-center pf-v6-c-page__header-brand-link--no-decoration pf-v6-u-pl-2xl pf-v6-u-pl-sm-on-xl pf-v6-x-u-hoverable-parent pf-v6-x-u-hoverable-parent--rotate"
+              class="pf-v6-u-display-flex pf-v6-u-align-items-center pf-v6-u-justify-content-center pf-v6-c-page__header-brand-link--no-decoration pf-v6-u-pl-md pf-v6-u-pl-sm-on-xl pf-v6-x-u-hoverable-parent pf-v6-x-u-hoverable-parent--rotate"
               href="{{ .Site.BaseURL }}"
             >
               <img
@@ -205,8 +205,10 @@
               </div>
             </a>
 
-            <div
-              class="pf-v6-u-display-flex pf-v6-u-align-items-center pf-v6-u-pr-2xl pf-v6-u-pr-0-on-xl"
+            {{/* Desktop navigation - hidden on mobile */}}
+            <nav
+              class="pf-v6-u-display-flex pf-v6-u-align-items-center pf-v6-u-pr-md pf-v6-u-pr-0-on-xl pf-v6-x-c-nav--desktop"
+              aria-label="Main navigation"
             >
               {{ range .Site.Data.links.navbar }}
                 <a
@@ -221,17 +223,59 @@
                 >
               {{ end }}
 
+              {{/* Stream status - desktop only */}}
               {{ if .Site.Data.integrations.youtube.enabled }}
-                <div class="pf-v6-u-ml-md">
-                  {{ partial "streamstatus" (dict "ID" "youtubestatus" "Platform" "youtube" "Username" .Site.Data.integrations.youtube.username "BaseURL" .Site.BaseURL ) }}
+                <div class="pf-v6-u-ml-md pf-v6-x-c-streamstatus--desktop">
+                  {{ partial "streamstatus" (dict "ID" "youtubestatus-desktop" "Platform" "youtube" "Username" .Site.Data.integrations.youtube.username "BaseURL" .Site.BaseURL ) }}
                 </div>
               {{ end }}
 
               {{ if .Site.Data.integrations.twitch.enabled }}
-                <div class="pf-v6-u-ml-md">
-                  {{ partial "streamstatus" (dict "ID" "twitchstatus" "Platform" "twitch" "Username" .Site.Data.integrations.twitch.username "BaseURL" .Site.BaseURL ) }}
+                <div class="pf-v6-u-ml-md pf-v6-x-c-streamstatus--desktop">
+                  {{ partial "streamstatus" (dict "ID" "twitchstatus-desktop" "Platform" "twitch" "Username" .Site.Data.integrations.twitch.username "BaseURL" .Site.BaseURL ) }}
                 </div>
               {{ end }}
+            </nav>
+
+            {{/* Mobile hamburger menu toggle */}}
+            <div class="pf-v6-x-c-mobile-menu pf-v6-u-pr-md">
+              <button
+                class="pf-v6-c-menu-toggle pf-v6-c-menu-toggle--header pf-m-plain"
+                type="button"
+                aria-expanded="false"
+                aria-label="Toggle navigation menu"
+                id="mobile-menu-toggle"
+              >
+                <span class="pf-v6-c-menu-toggle__icon">
+                  <i class="fas fa-bars" aria-hidden="true"></i>
+                </span>
+              </button>
+
+              {{/* Mobile dropdown menu */}}
+              <div class="pf-v6-c-menu pf-v6-x-c-mobile-menu__dropdown" id="mobile-menu-dropdown" hidden>
+                <div class="pf-v6-c-menu__content">
+                  <ul class="pf-v6-c-menu__list" role="menu">
+                    {{ range .Site.Data.links.navbar }}
+                      <li class="pf-v6-c-menu__list-item" role="none">
+                        <a
+                          class="pf-v6-c-menu__item"
+                          href="{{ .link }}"
+                          {{ if .newTab }}target="_blank"{{ end }}
+                          rel="noopener"
+                          role="menuitem"
+                        >
+                          <span class="pf-v6-c-menu__item-icon">
+                            <i class="{{ .icon }}" aria-hidden="true"></i>
+                          </span>
+                          <span class="pf-v6-c-menu__item-main">
+                            <span class="pf-v6-c-menu__item-text">{{ .title }}</span>
+                          </span>
+                        </a>
+                      </li>
+                    {{ end }}
+                  </ul>
+                </div>
+              </div>
             </div>
           </div>
         </header>
@@ -252,6 +296,73 @@
           {{ .Content }}
         </main>
       {{ end }}
+
+      {{/* Footer with stream status for mobile */}}
+      {{ if or .Site.Data.integrations.youtube.enabled .Site.Data.integrations.twitch.enabled }}
+        <footer class="pf-v6-x-c-footer pf-v6-x-c-footer--mobile-stream-status pf-v6-x-u-blur">
+          <div class="pf-v6-x-c-footer--max-width pf-v6-u-display-flex pf-v6-u-flex-wrap pf-v6-u-justify-content-center pf-v6-u-align-items-center pf-v6-u-gap-md pf-v6-u-py-md">
+            {{ if .Site.Data.integrations.youtube.enabled }}
+              <div class="pf-v6-x-c-streamstatus--mobile">
+                {{ partial "streamstatus" (dict "ID" "youtubestatus-mobile" "Platform" "youtube" "Username" .Site.Data.integrations.youtube.username "BaseURL" .Site.BaseURL ) }}
+              </div>
+            {{ end }}
+
+            {{ if .Site.Data.integrations.twitch.enabled }}
+              <div class="pf-v6-x-c-streamstatus--mobile">
+                {{ partial "streamstatus" (dict "ID" "twitchstatus-mobile" "Platform" "twitch" "Username" .Site.Data.integrations.twitch.username "BaseURL" .Site.BaseURL ) }}
+              </div>
+            {{ end }}
+          </div>
+        </footer>
+      {{ end }}
     </div>
+
+    {{/* Mobile menu toggle script */}}
+    <script type="module">
+      const menuToggle = document.getElementById('mobile-menu-toggle');
+      const menuDropdown = document.getElementById('mobile-menu-dropdown');
+
+      if (menuToggle && menuDropdown) {
+        menuToggle.addEventListener('click', () => {
+          const isExpanded = menuToggle.getAttribute('aria-expanded') === 'true';
+          menuToggle.setAttribute('aria-expanded', !isExpanded);
+          menuDropdown.hidden = isExpanded;
+
+          // Update icon
+          const icon = menuToggle.querySelector('i');
+          if (icon) {
+            icon.classList.toggle('fa-bars', isExpanded);
+            icon.classList.toggle('fa-times', !isExpanded);
+          }
+        });
+
+        // Close menu when clicking outside
+        document.addEventListener('click', (event) => {
+          if (!menuToggle.contains(event.target) && !menuDropdown.contains(event.target)) {
+            menuToggle.setAttribute('aria-expanded', 'false');
+            menuDropdown.hidden = true;
+            const icon = menuToggle.querySelector('i');
+            if (icon) {
+              icon.classList.remove('fa-times');
+              icon.classList.add('fa-bars');
+            }
+          }
+        });
+
+        // Close menu on escape key
+        document.addEventListener('keydown', (event) => {
+          if (event.key === 'Escape' && !menuDropdown.hidden) {
+            menuToggle.setAttribute('aria-expanded', 'false');
+            menuDropdown.hidden = true;
+            const icon = menuToggle.querySelector('i');
+            if (icon) {
+              icon.classList.remove('fa-times');
+              icon.classList.add('fa-bars');
+            }
+            menuToggle.focus();
+          }
+        });
+      }
+    </script>
   </body>
 </html>
