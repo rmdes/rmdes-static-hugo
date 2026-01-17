@@ -138,6 +138,18 @@
       </div>
     </div>
 
+    {{/* Stream status - YouTube/Twitch integration */}}
+    {{ if or .Site.Data.integrations.youtube.enabled .Site.Data.integrations.twitch.enabled }}
+      <div class="pf-v6-x-c-streamstatus--homepage">
+        {{ if .Site.Data.integrations.youtube.enabled }}
+          {{ partial "streamstatus" (dict "ID" "youtubestatus-home" "Platform" "youtube" "Username" .Site.Data.integrations.youtube.username "BaseURL" .Site.BaseURL ) }}
+        {{ end }}
+        {{ if .Site.Data.integrations.twitch.enabled }}
+          {{ partial "streamstatus" (dict "ID" "twitchstatus-home" "Platform" "twitch" "Username" .Site.Data.integrations.twitch.username "BaseURL" .Site.BaseURL ) }}
+        {{ end }}
+      </div>
+    {{ end }}
+
     {{ if .Site.Data.integrations.github.enabled }}
       <section class="pf-v6-x-commitwrapper pf-v6-u-mb-md" id="commit">
         {{ partial "lastcommit" (dict "ID" "lastcommit" "Username" .Site.Data.integrations.github.username "BaseURL" .Site.BaseURL ) }}

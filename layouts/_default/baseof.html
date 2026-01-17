@@ -297,24 +297,6 @@
         </main>
       {{ end }}
 
-      {{/* Footer with stream status for mobile */}}
-      {{ if or .Site.Data.integrations.youtube.enabled .Site.Data.integrations.twitch.enabled }}
-        <footer class="pf-v6-x-c-footer pf-v6-x-c-footer--mobile-stream-status pf-v6-x-u-blur">
-          <div class="pf-v6-x-c-footer--max-width pf-v6-u-display-flex pf-v6-u-flex-wrap pf-v6-u-justify-content-center pf-v6-u-align-items-center pf-v6-u-gap-md pf-v6-u-py-md">
-            {{ if .Site.Data.integrations.youtube.enabled }}
-              <div class="pf-v6-x-c-streamstatus--mobile">
-                {{ partial "streamstatus" (dict "ID" "youtubestatus-mobile" "Platform" "youtube" "Username" .Site.Data.integrations.youtube.username "BaseURL" .Site.BaseURL ) }}
-              </div>
-            {{ end }}
-
-            {{ if .Site.Data.integrations.twitch.enabled }}
-              <div class="pf-v6-x-c-streamstatus--mobile">
-                {{ partial "streamstatus" (dict "ID" "twitchstatus-mobile" "Platform" "twitch" "Username" .Site.Data.integrations.twitch.username "BaseURL" .Site.BaseURL ) }}
-              </div>
-            {{ end }}
-          </div>
-        </footer>
-      {{ end }}
     </div>
 
     {{/* Mobile menu toggle script */}}

@@ -379,6 +379,14 @@ $mobile-breakpoint: 768px;
   display: flex;
   justify-content: space-between;
   align-items: center;
+  flex-wrap: nowrap;
+  gap: var(--pf-t--global--spacer--sm);
+  width: 100%;
+  padding: 0 var(--pf-t--global--spacer--md);
+
+  @media screen and (max-width: $mobile-breakpoint) {
+    padding: 0 var(--pf-t--global--spacer--sm);
+  }
 }
 
 .pf-v6-c-page__header--max-width {
@@ -448,18 +456,34 @@ $mobile-breakpoint: 768px;
 
 .pf-v6-c-page__header-brand-link--no-decoration {
   color: var(--pf-t--color--black);
+  flex-shrink: 1;
+  min-width: 0;
 
   @media (prefers-color-scheme: dark) {
     color: var(--pf-t--color--white);
   }
 
   text-decoration: none;
+
+  @media screen and (max-width: $mobile-breakpoint) {
+    // Reduce text sizes on mobile
+    h1 {
+      font-size: var(--pf-t--global--font--size--body--sm) !important;
+    }
+    h2 {
+      font-size: var(--pf-t--global--font--size--body--xs) !important;
+    }
+  }
 }
 
 .pf-v6-c-avatar--navbar {
   width: 60px;
   height: 100%;
   object-fit: cover;
+
+  @media screen and (max-width: $mobile-breakpoint) {
+    width: 40px;
+  }
 }
 
 .pf-v6-x-m-no-highlight--dark {
@@ -1182,9 +1206,12 @@ a.pf-v6-c-button.pf-m-primary,
 .pf-v6-x-c-mobile-menu {
   display: none;
   position: relative;
+  z-index: 100;
+  flex-shrink: 0;
 
   @media screen and (max-width: $mobile-breakpoint) {
-    display: block;
+    display: flex !important;
+    align-items: center;
   }
 }
 
@@ -1220,7 +1247,10 @@ a.pf-v6-c-button.pf-m-primary,
   }
 
   .pf-v6-c-menu-toggle__icon {
-    font-size: 1.25rem;
+    font-size: 1.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
 }
 
@@ -1229,9 +1259,10 @@ a.pf-v6-c-button.pf-m-primary,
   position: absolute;
   top: 100%;
   right: 0;
-  min-width: 200px;
+  min-width: 220px;
   margin-top: var(--pf-t--global--spacer--xs);
   border-radius: var(--pf-t--global--border--radius--medium);
+  z-index: 1000;
   box-shadow: var(--pf-t--global--box-shadow--md);
 
   @extend .pf-v6-x-u-blur;
@@ -1311,44 +1342,16 @@ a.pf-v6-c-button.pf-m-primary,
 }
 
 // =============================================================================
-// Footer with Mobile Stream Status
+// Stream Status in Homepage Sidebar
 // =============================================================================
 
-.pf-v6-x-c-footer--mobile-stream-status {
-  display: none;
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  z-index: 10;
-  border-top: var(--pf-t--global--border--width--box--default)
-    var(--pf-v6-c-card--BorderStyle) var(--pf-t--global--border--color--default);
-
-  @media screen and (max-width: $mobile-breakpoint) {
-    display: block;
-  }
-}
-
-// Mobile stream status widget styling
-.pf-v6-x-c-streamstatus--mobile {
-  display: none;
-
-  @media screen and (max-width: $mobile-breakpoint) {
-    display: block;
-  }
-
-  // Make stream status more compact on mobile
-  .streamstatus__channel__badge {
-    height: 1rem;
-    min-width: 8rem;
-  }
-}
-
-// Add bottom padding to main content when footer is visible on mobile
-@media screen and (max-width: $mobile-breakpoint) {
-  .pf-v6-c-page__main--with-overlay {
-    padding-bottom: 100px; // Space for the fixed footer
-  }
+// Stream status on homepage - always visible, stacked on mobile
+.pf-v6-x-c-streamstatus--homepage {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--pf-t--global--spacer--sm);
+  padding: var(--pf-t--global--spacer--md) 0;
 }
 
 // =============================================================================
